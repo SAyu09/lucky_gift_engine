@@ -1,13 +1,14 @@
 // src/app/(auth)/login/page.tsx
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useAuth } from '@/hooks/api/useAuth';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useToastStore } from '@/store/useToastStore';
-import { Loader2, Sparkles, Mail, Lock } from 'lucide-react';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { useAuth } from "@/hooks/api/useAuth";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useToastStore } from "@/store/useToastStore";
+import { Loader2, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,8 +17,8 @@ export default function LoginPage() {
   const { addToast } = useToastStore();
 
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,29 +33,35 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password);
-      addToast('Successfully authenticated', 'success');
-      
+      addToast("Successfully authenticated", "success");
+
       // Grab updated user from Zustand instantly to route
       // Wait a tick for Zustand propagation if necessary, though login should mutate it immediately
       const currentUserRole = useAuthStore.getState().user?.role;
-      
+
       switch (currentUserRole) {
-        case 'ADMIN':
-          router.push('/admin/users');
+        case "ADMIN":
+          router.push("/admin/users");
           break;
-        case 'B2B_CLIENT':
-          router.push('/b2b/configurations');
+        case "B2B_CLIENT":
+          router.push("/b2b/configurations");
           break;
-        case 'USER':
-          router.push('/user/play');
+        case "USER":
+          router.push("/user/play");
           break;
         default:
-          router.push('/');
+          router.push("/");
       }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } }, message?: string };
-      const errorMessage = error.response?.data?.error || error.message || 'Login failed. Invalid credentials.';
-      addToast(errorMessage, 'error');
+      const error = err as {
+        response?: { data?: { error?: string } };
+        message?: string;
+      };
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Login failed. Invalid credentials.";
+      addToast(errorMessage, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -67,37 +74,38 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 relative overflow-hidden">
-      
       {/* Background Decor */}
       <div className="absolute top-0 left-0 -ml-20 -mt-20 w-72 h-72 bg-blue-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
       <div className="absolute bottom-0 right-0 -mr-20 -mb-20 w-72 h-72 bg-purple-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
 
       <div className="w-full sm:mx-auto sm:max-w-md relative z-10 px-4 sm:px-0">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6 group">
-            <div className="bg-gradient-to-tr from-blue-600 to-purple-600 text-white p-2 rounded-xl shadow-lg group-hover:shadow-blue-500/30 transition-shadow">
-              <Sparkles className="h-6 w-6" />
-            </div>
-            <span className="text-2xl font-black tracking-tight text-gray-900 group-hover:text-blue-700 transition-colors">
-              Lucky Engine
-            </span>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center mb-6 group"
+          >
+            
           </Link>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
             Welcome back
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+            >
               Create an account
             </Link>
           </p>
         </div>
 
         <div className="bg-white py-8 px-4 shadow-xl sm:rounded-3xl sm:px-10 border border-gray-100 backdrop-blur-sm relative overflow-hidden">
-          
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
+              </label>
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
@@ -117,7 +125,9 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-400" />
@@ -144,13 +154,19 @@ export default function LoginPage() {
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-900 cursor-pointer"
+                >
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                <a
+                  href="#"
+                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                >
                   Forgot your password?
                 </a>
               </div>
@@ -167,7 +183,7 @@ export default function LoginPage() {
                   Authenticating...
                 </>
               ) : (
-                'Sign in'
+                "Sign in"
               )}
             </button>
           </form>
