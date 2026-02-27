@@ -1,11 +1,11 @@
 // src/app/(dashboard)/page.tsx
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/useAuthStore';
-import { Role } from '@/types/auth.types';
-import { Loader2 } from 'lucide-react';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Role } from "@/types/auth.types";
+import { Loader2 } from "lucide-react";
 
 /**
  * Root Dashboard Router
@@ -17,32 +17,32 @@ export default function DashboardRootPage() {
   const { role, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    // If we land here but somehow aren't authenticated (which shouldn't 
+    // If we land here but somehow aren't authenticated (which shouldn't
     // happen due to RoleGuard, but as a safety net), go to login.
     if (!isAuthenticated) {
-      router.replace('/login');
+      router.replace("/login");
       return;
     }
 
     // Role-based routing to their respective home pages
     switch (role) {
       case Role.ADMIN:
-        router.replace('/admin/users');
+        router.replace("/admin/dashboard");
         break;
       case Role.B2B_CLIENT:
-        router.replace('/b2b/configurations');
+        router.replace("/b2b/dashboard");
         break;
       case Role.USER:
-        router.replace('/user/play');
+        router.replace("/user/play");
         break;
       default:
         // Safest fallback if role is unrecognized
-        router.replace('/login');
+        router.replace("/login");
         break;
     }
   }, [role, isAuthenticated, router]);
 
-  // While processing the redirect, show a generic full-screen loader 
+  // While processing the redirect, show a generic full-screen loader
   // consistent with the platform feel.
   return (
     <div className="flex h-[80vh] w-full flex-col items-center justify-center space-y-4">

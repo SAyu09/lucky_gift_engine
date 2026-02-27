@@ -17,6 +17,10 @@ import {
   X,
   Database,
   Receipt,
+  DollarSign,
+  Shield,
+  Sliders,
+  Building2,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -30,15 +34,43 @@ export function Sidebar() {
       case Role.ADMIN:
         return [
           {
-            name: "Global Stats",
-            href: "/admin/global-stats",
+            name: "Dashboard",
+            href: "/admin/dashboard",
             icon: BarChart2,
           },
-          { name: "Clients (B2B)", href: "/admin/clients", icon: Settings },
-          { name: "Users", href: "/admin/users", icon: Users },
+          {
+            name: "Clients (B2B)",
+            href: "/admin/clients",
+            icon: Building2,
+          },
+          {
+            name: "Platform Users",
+            href: "/admin/users",
+            icon: Users,
+          },
+          {
+            name: "Payment Controls",
+            href: "/admin/payments",
+            icon: DollarSign,
+          },
+          {
+            name: "Set Global Rules",
+            href: "/admin/global-rules",
+            icon: Sliders,
+          },
+          {
+            name: "Security & Logs",
+            href: "/admin/security",
+            icon: Shield,
+          },
         ];
       case Role.B2B_CLIENT:
         return [
+          {
+            name: "Dashboard",
+            href: "/b2b/dashboard",
+            icon: BarChart2,
+          },
           {
             name: "Gift Configuration",
             href: "/b2b/configurations",
@@ -89,8 +121,10 @@ export function Sidebar() {
             Lucky Engine
           </Link>
           <button
+            type="button"
             className="lg:hidden text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-purple-300"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
           >
             <X className="h-6 w-6" />
           </button>

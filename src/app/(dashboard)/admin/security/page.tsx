@@ -1,28 +1,28 @@
 "use client";
 
-import { Database, Package, TrendingUp, AlertCircle } from "lucide-react";
+import { Shield, Lock, Activity } from "lucide-react";
 
-export default function RewardPoolPage() {
+export default function SecurityPage() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Reward Pool
+          Security & Logs
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Manage Prize Inventory and allocation logic
+          Audit Trails & System Monitoring
         </p>
       </div>
 
       <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-12 text-center backdrop-blur-sm">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-500/10 dark:bg-purple-500/20 mb-4">
-          <Database className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+          <Shield className="h-8 w-8 text-purple-600 dark:text-purple-400" />
         </div>
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          Reward Pool Management
+          Security & Audit Logs
         </h2>
         <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-          Configure and monitor your reward inventory. Coming soon!
+          Monitor system security and view audit trails. Coming soon!
         </p>
       </div>
     </div>
