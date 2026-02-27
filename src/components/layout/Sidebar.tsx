@@ -21,6 +21,7 @@ import {
   Shield,
   Sliders,
   Building2,
+  CreditCard,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -80,6 +81,7 @@ export function Sidebar() {
           { name: "Reward Pool", href: "/b2b/reward-pool", icon: Database },
           { name: "Transaction Logs", href: "/b2b/transactions", icon: List },
           { name: "Billing Controls", href: "/b2b/billing", icon: Receipt },
+          { name: "Pricing", href: "/b2b/pricing", icon: CreditCard },
         ];
       case Role.USER:
         return [
