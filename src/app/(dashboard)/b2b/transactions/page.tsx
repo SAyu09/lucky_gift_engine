@@ -40,68 +40,68 @@ export default function B2BTransactionsPage() {
     <div className="space-y-6">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <History className="h-6 w-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <History className="h-6 w-6 text-blue-600 dark:text-purple-400" />
             Transaction Audit Logs
           </h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-400">
             Immutable ledger of all spin executions processed by the Continuous Engine for your platform.
           </p>
         </div>
       </div>
 
-      <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white dark:bg-[#1a1025] shadow-sm border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
         
         {/* Toolbar */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+        <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-[#1a1025] flex flex-col sm:flex-row gap-4 justify-between items-center">
           <div className="relative w-full sm:w-96">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <Search className="h-4 w-4 text-gray-400" />
             </div>
             <input
               type="text"
-              className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm"
+              className="block w-full rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1f132b] py-2 pl-10 pr-3 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
               placeholder="Search by Transaction ID or User ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-             <Filter className="h-4 w-4 text-gray-400" />
+          <button className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1f132b] px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-[#2a173d] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+             <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500" />
              Filter Results
           </button>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-white/10">
+            <thead className="bg-gray-50 dark:bg-[#1f132b]">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Time</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Transaction ID</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User ID</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Gift</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Bet</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Win (Mult)</th>
-                <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date & Time</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction ID</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User ID</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bet</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Win (Mult)</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-[#1a1025] divide-y divide-gray-200 dark:divide-white/10">
               {filteredTransactions.map((tx) => (
-                <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <tr key={tx.id} className="hover:bg-gray-50 dark:hover:bg-[#1f132b] transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {tx.date}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-gray-900 bg-gray-100 px-2 py-1 rounded">{tx.id}</span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-white/10 px-2 py-1 rounded">{tx.id}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-purple-400">
                     {tx.userId}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {tx.giftName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
                     {tx.betAmount.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -121,9 +121,9 @@ export default function B2BTransactionsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                      tx.status === 'SUCCESS' ? 'bg-green-50 text-green-700 border-green-200' : 
-                      tx.status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' : 
-                      'bg-yellow-50 text-yellow-700 border-yellow-200'
+                      tx.status === 'SUCCESS' ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20' : 
+                      tx.status === 'FAILED' ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/20' : 
+                      'bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/20'
                     }`}>
                       {tx.status}
                     </span>
@@ -135,27 +135,27 @@ export default function B2BTransactionsPage() {
           
           {filteredTransactions.length === 0 && (
              <div className="text-center py-12">
-               <History className="mx-auto h-12 w-12 text-gray-300" />
-               <h3 className="mt-2 text-sm font-medium text-gray-900">No transactions found</h3>
-               <p className="mt-1 text-sm text-gray-500">Try adjusting your search query.</p>
+               <History className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No transactions found</h3>
+               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your search query.</p>
              </div>
           )}
         </div>
 
         {/* Pagination Mock */}
-        <div className="border-t border-gray-200 bg-white px-4 py-3 flex items-center justify-between sm:px-6">
+        <div className="border-t border-gray-200 dark:border-white/10 bg-white dark:bg-[#1a1025] px-4 py-3 flex items-center justify-between sm:px-6">
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredTransactions.length}</span> of <span className="font-medium">{mockTransactions.length}</span> results
               </p>
             </div>
             <div>
               <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                <button disabled className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed">
+                <button disabled className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1f132b] text-sm font-medium text-gray-300 dark:text-gray-600 cursor-not-allowed">
                   Previous
                 </button>
-                <button disabled className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-300 cursor-not-allowed">
+                <button disabled className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-white/10 bg-white dark:bg-[#1f132b] text-sm font-medium text-gray-300 dark:text-gray-600 cursor-not-allowed">
                   Next
                 </button>
               </nav>

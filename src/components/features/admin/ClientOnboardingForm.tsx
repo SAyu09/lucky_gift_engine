@@ -153,12 +153,12 @@ export function ClientOnboardingForm() {
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="company-name" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="company-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Company Name <span className="text-red-500">*</span>
           </label>
           <div className="relative mt-1 rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Building className="h-5 w-5 text-gray-400" />
+              <Building className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <input
               type="text"
@@ -166,7 +166,7 @@ export function ClientOnboardingForm() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-3 border outline-none transition-colors"
+              className="block w-full rounded-lg border-gray-300 dark:border-white/10 dark:bg-[#1f132b] dark:text-gray-100 pl-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-3 border outline-none transition-colors dark:placeholder-gray-500"
               placeholder="e.g. Acme Corp Gaming"
               disabled={isLoading}
             />
@@ -174,24 +174,24 @@ export function ClientOnboardingForm() {
         </div>
 
         <div>
-          <label htmlFor="webhook-url" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="webhook-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Webhook URL <span className="text-gray-400 font-normal">(Optional)</span>
           </label>
           <div className="relative mt-1 rounded-md shadow-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <LinkIcon className="h-5 w-5 text-gray-400" />
+              <LinkIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <input
               type="url"
               id="webhook-url"
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-3 border outline-none transition-colors"
+              className="block w-full rounded-lg border-gray-300 dark:border-white/10 dark:bg-[#1f132b] dark:text-gray-100 pl-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-3 border outline-none transition-colors dark:placeholder-gray-500"
               placeholder="https://api.acmecorp.com/webhooks/lucky-engine"
               disabled={isLoading}
             />
           </div>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             The endpoint where Continuous Engine spin results will be dispatched.
           </p>
         </div>

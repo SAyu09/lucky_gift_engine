@@ -54,11 +54,11 @@ export default function B2BConfigurationsPage() {
     <div className="space-y-6">
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Settings className="h-6 w-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Settings className="h-6 w-6 text-blue-600 dark:text-purple-400" />
             Gift Configurations
           </h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-400">
             Manage your game economies, entry prices, and continuous engine probability tables here.
           </p>
         </div>
@@ -77,18 +77,18 @@ export default function B2BConfigurationsPage() {
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-4 border border-red-200">
-          <div className="flex">
-            <AlertCircle className="h-5 w-5 text-red-400 mr-3" />
-            <div className="text-sm text-red-700">{error}</div>
+        <div className="rounded-md bg-white p-4 border border-red-200 shadow-sm">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <div className="text-sm text-red-500 font-medium">{error}</div>
           </div>
         </div>
       )}
 
       {isFormOpen ? (
-        <div className="bg-white shadow sm:rounded-lg border border-gray-200">
+        <div className="bg-white dark:bg-[#1a1025] shadow sm:rounded-lg border border-gray-200 dark:border-white/10">
           <div className="px-4 py-5 sm:p-6">
-            <h3 className="text-base font-semibold leading-6 text-gray-900 mb-5">Create New Configuration</h3>
+            <h3 className="text-base font-semibold leading-6 text-gray-900 dark:text-white mb-5">Create New Configuration</h3>
             <GiftConfigForm 
               onSubmit={handleCreateSubmit} 
               isLoading={isLoading} 
@@ -97,51 +97,51 @@ export default function B2BConfigurationsPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white shadow sm:rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-[#1a1025] shadow sm:rounded-lg border border-gray-200 dark:border-white/10 overflow-hidden">
           {isLoading && configs.length === 0 ? (
             <div className="p-12 flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
           ) : configs.length === 0 ? (
             <div className="text-center py-12 px-4 sm:px-6 lg:px-8">
-              <Settings className="mx-auto h-12 w-12 text-gray-300" />
-              <h3 className="mt-2 text-sm font-semibold text-gray-900">No configurations</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by creating a new gift configuration.</p>
+              <Settings className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+              <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">No configurations</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating a new gift configuration.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-300 dark:divide-white/10">
+                <thead className="bg-gray-50 dark:bg-[#1f132b]">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Gift ID</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Name</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Entry Price</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Target RTP</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tiers</th>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-200 sm:pl-6">Gift ID</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Name</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Entry Price</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Target RTP</th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-200">Tiers</th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="divide-y divide-gray-200 dark:divide-white/10 bg-white dark:bg-[#1a1025]">
                   {configs.map((config) => (
-                    <tr key={config.id || config.giftId}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                    <tr key={config.id || config.giftId} className="hover:bg-gray-50 dark:hover:bg-[#1f132b] transition-colors">
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-gray-100 sm:pl-6">
                         #{config.giftId}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {config.name || `Config ${config.giftId}`}
                         {config.isActive === false && (
-                          <span className="ml-2 inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Inactive</span>
+                          <span className="ml-2 inline-flex items-center rounded-md bg-red-50 dark:bg-red-500/10 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 ring-1 ring-inset ring-red-600/10 dark:ring-red-500/20">Inactive</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {config.entryPrice}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {config.targetRtpPercent}%
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                         {config.probabilityTable?.length || 0} tiers
                       </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
