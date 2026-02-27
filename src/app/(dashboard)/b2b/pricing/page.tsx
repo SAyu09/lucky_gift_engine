@@ -44,7 +44,7 @@ export default function PricingPage() {
         "Custom probability tables",
         "Advanced analytics",
       ],
-      cta: "Start Free Trial",
+      cta: "Upgrade To Basic Plan",
       gradient: "from-blue-500 to-cyan-500",
     },
     {
@@ -82,7 +82,7 @@ export default function PricingPage() {
         "Custom SLA agreements",
         "On-premise deployment options",
       ],
-      cta: "Contact Sales",
+      cta: "Upgrade To Advance",
       gradient: "from-amber-500 to-orange-500",
     },
   ];
