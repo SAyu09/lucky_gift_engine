@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Check,
   X,
@@ -11,18 +10,12 @@ import {
   Sparkles,
   Crown,
   Rocket,
-  Star,
 } from "lucide-react";
-
-type BillingCycle = "monthly" | "annual";
 
 interface PricingPlan {
   name: string;
   description: string;
-  price: {
-    monthly: number;
-    annual: number;
-  };
+  price: number | "custom";
   icon: React.ReactNode;
   features: string[];
   notIncluded?: string[];
@@ -32,16 +25,11 @@ interface PricingPlan {
 }
 
 export default function PricingPage() {
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-
   const plans: PricingPlan[] = [
     {
       name: "Starter",
       description: "Perfect for testing and small projects",
-      price: {
-        monthly: 49,
-        annual: 470,
-      },
+      price: 49,
       icon: <Rocket className="h-6 w-6" />,
       features: [
         "Up to 10,000 spins/month",
@@ -62,10 +50,7 @@ export default function PricingPage() {
     {
       name: "Professional",
       description: "For growing businesses and serious integrations",
-      price: {
-        monthly: 199,
-        annual: 1910,
-      },
+      price: 199,
       icon: <Crown className="h-6 w-6" />,
       features: [
         "Up to 100,000 spins/month",
@@ -82,12 +67,9 @@ export default function PricingPage() {
       gradient: "from-purple-500 to-pink-500",
     },
     {
-      name: "Enterprise",
+      name: "Pro",
       description: "Custom solutions for large-scale operations",
-      price: {
-        monthly: 0,
-        annual: 0,
-      },
+      price: 299,
       icon: <Sparkles className="h-6 w-6" />,
       features: [
         "Unlimited spins",
@@ -105,96 +87,34 @@ export default function PricingPage() {
     },
   ];
 
-  const getPrice = (plan: PricingPlan) => {
-    if (plan.price.monthly === 0) return "Custom";
-    const price =
-      billingCycle === "monthly" ? plan.price.monthly : plan.price.annual;
-    return `$${price}`;
-  };
-
-  const getSavings = (plan: PricingPlan) => {
-    if (plan.price.monthly === 0) return null;
-    const monthlyCost = plan.price.monthly * 12;
-    const annualCost = plan.price.annual;
-    const savings = monthlyCost - annualCost;
-    const percentage = Math.round((savings / monthlyCost) * 100);
-    return { amount: savings, percentage };
-  };
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-4 sm:px-6 lg:px-8 py-8 max-w-screen-xl mx-auto">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-4">
           Choose Your Plan
         </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
           Scale your gaming platform with our flexible pricing. All plans
           include our provably fair RNG engine and secure API infrastructure.
         </p>
       </div>
 
-      {/* Billing Toggle */}
-      <div className="flex items-center justify-center gap-4">
-        <span
-          className={`text-sm font-medium ${
-            billingCycle === "monthly"
-              ? "text-gray-900 dark:text-white"
-              : "text-gray-500 dark:text-gray-400"
-          }`}
-        >
-          Monthly
-        </span>
-        <button
-          type="button"
-          onClick={() =>
-            setBillingCycle(billingCycle === "monthly" ? "annual" : "monthly")
-          }
-          className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-            billingCycle === "annual"
-              ? "bg-purple-600"
-              : "bg-gray-300 dark:bg-gray-600"
-          }`}
-        >
-          <span
-            className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
-              billingCycle === "annual" ? "translate-x-7" : "translate-x-1"
-            }`}
-          />
-        </button>
-        <span
-          className={`text-sm font-medium ${
-            billingCycle === "annual"
-              ? "text-gray-900 dark:text-white"
-              : "text-gray-500 dark:text-gray-400"
-          }`}
-        >
-          Annual
-        </span>
-        {billingCycle === "annual" && (
-          <span className="ml-2 inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-semibold rounded-full">
-            <Star className="h-3 w-3" />
-            Save up to 20%
-          </span>
-        )}
-      </div>
-
       {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mt-12">
         {plans.map((plan, index) => {
-          const savings = getSavings(plan);
           return (
             <div
               key={index}
-              className={`relative bg-white dark:bg-purple-950/20 border rounded-2xl p-8 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
+              className={`relative bg-white dark:bg-purple-950/20 border rounded-2xl p-6 sm:p-8 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col ${
                 plan.popular
-                  ? "border-purple-500 dark:border-purple-400 shadow-xl scale-105"
+                  ? "border-purple-500 dark:border-purple-400 shadow-xl lg:scale-105 mt-6"
                   : "border-gray-200 dark:border-purple-500/10"
               }`}
             >
               {/* Popular Badge */}
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
                   <div
                     className={`px-4 py-1.5 bg-gradient-to-r ${plan.gradient} text-white text-xs font-bold rounded-full shadow-lg flex items-center gap-1`}
                   >
@@ -206,13 +126,13 @@ export default function PricingPage() {
 
               {/* Icon */}
               <div
-                className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${plan.gradient} text-white mb-4`}
+                className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${plan.gradient} text-white mb-4 w-fit`}
               >
                 {plan.icon}
               </div>
 
               {/* Plan Name & Description */}
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 {plan.name}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
@@ -221,27 +141,18 @@ export default function PricingPage() {
 
               {/* Price */}
               <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-5xl font-bold text-gray-900 dark:text-white">
-                    {getPrice(plan)}
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white">
+                    ${plan.price}
                   </span>
-                  {plan.price.monthly > 0 && (
-                    <span className="text-gray-500 dark:text-gray-400">
-                      /{billingCycle === "monthly" ? "mo" : "yr"}
-                    </span>
-                  )}
+                  <span className="text-gray-500 dark:text-gray-400">/mo</span>
                 </div>
-                {billingCycle === "annual" && savings && (
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400 mt-2">
-                    Save ${savings.amount}/year ({savings.percentage}% off)
-                  </p>
-                )}
               </div>
 
               {/* CTA Button */}
               <button
                 type="button"
-                className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200 mb-6 ${
+                className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200 mb-6 text-sm sm:text-base ${
                   plan.popular
                     ? `bg-gradient-to-r ${plan.gradient} text-white hover:shadow-lg hover:scale-105`
                     : "bg-gray-100 dark:bg-purple-950/30 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-purple-500/20"
@@ -251,7 +162,7 @@ export default function PricingPage() {
               </button>
 
               {/* Features */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex-1">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   What's included
                 </p>
@@ -286,13 +197,13 @@ export default function PricingPage() {
       </div>
 
       {/* Features Comparison */}
-      <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-2xl p-8 backdrop-blur-sm max-w-7xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+      <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
           All Plans Include
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+            <div className="p-3 bg-blue-100 dark:bg-blue-500/20 rounded-lg shrink-0">
               <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
@@ -306,7 +217,7 @@ export default function PricingPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
+            <div className="p-3 bg-purple-100 dark:bg-purple-500/20 rounded-lg shrink-0">
               <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
@@ -319,7 +230,7 @@ export default function PricingPage() {
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg">
+            <div className="p-3 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg shrink-0">
               <Users className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
@@ -334,64 +245,18 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* FAQ Section */}
-      <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-2xl p-8 backdrop-blur-sm max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
-          Frequently Asked Questions
-        </h2>
-        <div className="space-y-6">
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-              Can I switch plans anytime?
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Yes! You can upgrade or downgrade your plan at any time. Changes
-              take effect immediately, and we'll prorate any charges.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-              What happens if I exceed my spin limit?
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              We'll notify you when you reach 80% of your limit. You can either
-              upgrade your plan or purchase additional spins at $0.005 per spin.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-              Is there a free trial?
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Yes! All new accounts get a 14-day free trial with full access to
-              Professional plan features. No credit card required.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-              What payment methods do you accept?
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              We accept all major credit cards, PayPal, and wire transfers for
-              Enterprise plans. All payments are processed securely.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Contact CTA */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 text-center max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold text-white mb-4">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 sm:p-8 text-center">
+        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
           Need a Custom Solution?
         </h2>
-        <p className="text-purple-100 mb-6 max-w-2xl mx-auto">
-          Our Enterprise plan offers tailored solutions for high-volume
-          operations. Contact our sales team to discuss your specific
-          requirements.
+        <p className="text-purple-100 mb-6 max-w-2xl mx-auto text-sm sm:text-base">
+          Our Pro plan offers tailored solutions for high-volume operations.
+          Contact our sales team to discuss your specific requirements.
         </p>
         <button
           type="button"
-          className="px-8 py-3 bg-white text-purple-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+          className="px-6 sm:px-8 py-3 bg-white text-purple-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors text-sm sm:text-base"
         >
           Schedule a Demo
         </button>
