@@ -41,10 +41,10 @@ export default function LoginPage() {
 
       switch (currentUserRole) {
         case "ADMIN":
-          router.push("/admin/users");
+          router.push("/admin/dashboard");
           break;
         case "B2B_CLIENT":
-          router.push("/b2b/configurations");
+          router.push("/b2b/dashboard");
           break;
         case "USER":
           router.push("/user/play");
@@ -83,9 +83,7 @@ export default function LoginPage() {
           <Link
             href="/"
             className="inline-flex items-center justify-center mb-6 group"
-          >
-            
-          </Link>
+          ></Link>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
             Welcome back
           </h2>
