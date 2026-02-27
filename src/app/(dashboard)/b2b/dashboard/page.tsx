@@ -69,6 +69,15 @@ export default function B2BDashboardPage() {
       iconBg: "bg-violet-500/10",
       iconColor: "text-violet-400",
     },
+    {
+      title: "Pricing Plans",
+      description: "View & Upgrade Plans",
+      icon: Zap,
+      href: "/b2b/pricing",
+      color: "from-amber-500 to-yellow-500",
+      iconBg: "bg-amber-500/10",
+      iconColor: "text-amber-400",
+    },
   ];
 
   return (
