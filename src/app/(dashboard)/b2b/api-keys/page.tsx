@@ -31,9 +31,11 @@ function LockedPaywallUI() {
   const { initiatePayment, isLoading } = useB2B();
   const { addToast } = useToastStore();
 
+  // Inside LockedPaywallUI function
   const handlePay = async () => {
     try {
-      const result = await initiatePayment();
+      // 🟢 FIXED: Pass a minimum amount (e.g., $10) to initiate the wallet recharge
+      const result = await initiatePayment(10); 
       if (result?.checkoutUrl) {
         window.location.href = result.checkoutUrl;
       } else {

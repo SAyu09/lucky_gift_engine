@@ -187,12 +187,13 @@ export const useB2B = () => {
     }, []);
 
     // ─── Initiate Stripe Payment ─────────────────────────────────────────────
-    const initiatePayment = useCallback(async (): Promise<{ checkoutUrl: string; sessionId: string }> => {
+    // 🟢 FIXED: Accept amount, call /payments/recharge, and map correct data payload
+    const initiatePayment = useCallback(async (amount: number = 10): Promise<{ checkoutUrl: string; sessionId: string }> => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await apiClient.post<any>('/payments/initiate', {});
-            return response.data;
+            const response = await apiClient.post<{ success: boolean; data: { checkoutUrl: string; sessionId: string } }>('/payments/recharge', { amount });
+            return response.data.data; // 🟢 Extract nested data
         } catch (err) {
             const message = parseError(err, 'Failed to initiate payment. Please try again.');
             setError(message);
@@ -201,6 +202,7 @@ export const useB2B = () => {
             setIsLoading(false);
         }
     }, []);
+
 
     return {
         getConfigs,
