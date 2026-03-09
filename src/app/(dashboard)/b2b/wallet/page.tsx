@@ -1,9 +1,20 @@
+// src/app/(dashboard)/b2b/wallet/page.tsx
 "use client";
 
 import { useState } from "react";
 import { Wallet, TrendingUp, Loader2 } from "lucide-react";
 import { useToastStore } from "@/store/useToastStore";
 import { apiClient } from "@/lib/apiClient";
+
+// 🟢 NEW: Define the exact structure we expect from the backend
+interface RechargeResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    checkoutUrl: string;
+    sessionId: string;
+  };
+}
 
 export default function B2BWalletPage() {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(10000);
@@ -19,20 +30,25 @@ export default function B2BWalletPage() {
 
     setIsProcessing(true);
     try {
-      // Send the selected amount to the API
-      const response = await apiClient.post<{
-        checkoutUrl: string;
-        sessionId: string;
-      }>("/payments/initiate", { amount: selectedAmount });
+      // 🟢 FIXED: Added proper type to apiClient request
+      const response = await apiClient.post<RechargeResponse>("/payments/recharge", { 
+        amount: selectedAmount 
+      });
 
-      const { checkoutUrl } = response.data;
+      // 🟢 FIXED: Correctly extract checkoutUrl from the nested data object
+      const { checkoutUrl } = response.data.data;
 
-      // Redirect to Stripe checkout
-      window.location.href = checkoutUrl;
+      if (checkoutUrl) {
+        // Redirect to Stripe checkout
+        window.location.href = checkoutUrl;
+      } else {
+        throw new Error("No checkout URL received from server.");
+      }
     } catch (error: any) {
       const errorMessage =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
+        error?.message ||
         "Failed to initiate payment. Please try again.";
       const errorCode = error?.response?.data?.code;
 
@@ -49,12 +65,14 @@ export default function B2BWalletPage() {
           : errorMessage,
         "error",
       );
+      
+      // Stop the loader if there's an error (don't stop on success because the page is redirecting)
       setIsProcessing(false);
     }
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 pb-10">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
           Add Funds to Wallet
@@ -112,7 +130,8 @@ export default function B2BWalletPage() {
                   setSelectedAmount(value ? parseInt(value) : null);
                 }}
                 placeholder="0.00"
-                className="w-full bg-gray-50 dark:bg-purple-950/30 border border-gray-200 dark:border-purple-500/20 rounded-lg pl-10 sm:pl-12 pr-4 py-3 sm:py-4 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400"
+                disabled={isProcessing}
+                className="w-full bg-gray-50 dark:bg-purple-950/30 border border-gray-200 dark:border-purple-500/20 rounded-lg pl-10 sm:pl-12 pr-4 py-3 sm:py-4 text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 disabled:opacity-50 transition-colors"
               />
             </div>
           </div>
@@ -122,11 +141,12 @@ export default function B2BWalletPage() {
               <button
                 key={amount}
                 type="button"
+                disabled={isProcessing}
                 onClick={() => {
                   setSelectedAmount(amount);
                   setCustomAmount("");
                 }}
-                className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-sm sm:text-base font-medium transition-all ${
+                className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-sm sm:text-base font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   selectedAmount === amount
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
                     : "bg-gray-100 dark:bg-purple-950/30 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-purple-500/20"
@@ -147,7 +167,7 @@ export default function B2BWalletPage() {
             {isProcessing ? (
               <>
                 <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
-                Processing...
+                Connecting to Stripe...
               </>
             ) : (
               <>
