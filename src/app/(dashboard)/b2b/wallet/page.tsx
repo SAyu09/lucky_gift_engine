@@ -31,9 +31,12 @@ export default function B2BWalletPage() {
     setIsProcessing(true);
     try {
       // 🟢 FIXED: Added proper type to apiClient request
-      const response = await apiClient.post<RechargeResponse>("/payments/recharge", { 
-        amount: selectedAmount 
-      });
+      const response = await apiClient.post<RechargeResponse>(
+        "/payments/recharge",
+        {
+          amount: selectedAmount,
+        },
+      );
 
       // 🟢 FIXED: Correctly extract checkoutUrl from the nested data object
       const { checkoutUrl } = response.data.data;
@@ -65,7 +68,7 @@ export default function B2BWalletPage() {
           : errorMessage,
         "error",
       );
-      
+
       // Stop the loader if there's an error (don't stop on success because the page is redirecting)
       setIsProcessing(false);
     }
