@@ -23,7 +23,7 @@ export default function B2BWalletPage() {
       const response = await apiClient.post<{
         checkoutUrl: string;
         sessionId: string;
-      }>("/payments/initiate", { amount: selectedAmount });
+      }>("/Payments/recharge", { amount: selectedAmount });
 
       const { checkoutUrl } = response.data;
 
