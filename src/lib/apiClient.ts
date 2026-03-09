@@ -10,65 +10,82 @@ export const apiClient = axios.create({
     },
 });
 
-// Request Interceptor
+// ─── Request Interceptor ──────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
     (config) => {
-        // 1. Bearer Token (For USER & overall auth)
-        // Avoid accessing localStorage on the server during SSR
-        const token = typeof window !== 'undefined'
-            ? localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN)
-            : null;
+        if (typeof window === 'undefined') return config; // SSR guard
 
+        // 1. Bearer Token — for USER-authenticated routes (JWT)
+        const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
         if (token) {
             config.headers[HEADERS.AUTHORIZATION] = `Bearer ${token}`;
         }
 
-        // 2. Admin internal request handling
-        // Safely extract token - falling back appropriately if named differently in env
-        const adminSecret = process.env.NEXT_PUBLIC_INTERNAL_SERVICE_TOKEN || process.env.NEXT_PUBLIC_ADMIN_SECRET;
+        // 🟢 REMOVED B2B API Key injection here. 
+        // Dashboard uses JWT (hybridAuth handles this on backend). 
+        // API Keys are strictly for external B2B server-to-server calls.
 
-        // Pass 'X-Role-Context' manually in API calls for Admin specific actions
+        // 2. Admin Internal Token — injected only when X-Role-Context: ADMIN is set
+        const adminSecret =
+            process.env.NEXT_PUBLIC_INTERNAL_SERVICE_TOKEN ||
+            process.env.NEXT_PUBLIC_ADMIN_SECRET;
+
         if (adminSecret && config.headers['X-Role-Context'] === 'ADMIN') {
             config.headers[HEADERS.INTERNAL_TOKEN] = adminSecret;
         }
 
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
-// Response Interceptor
+// ─── Response Interceptor ─────────────────────────────────────────────────────
 apiClient.interceptors.response.use(
-    (response) => {
-        return response;
-    },
+    (response) => response,
     (error) => {
-        // Global Error Handling
-        if (error.response) {
+        if (error.response && typeof window !== 'undefined') {
             const status = error.response.status;
+            const toastStore = useToastStore.getState();
 
-            // Catch 401 Unauthorized or 403 Forbidden
-            if (status === 401 || status === 403) {
-                if (typeof window !== 'undefined') {
-                    // Force clearing session state gracefully
-                    localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
-                    localStorage.removeItem('auth-storage'); // Clears zustand standard persist if used
-
-                    // Optionally display a toast immediately if they aren't already on the login page
+            switch (status) {
+                case 401:
+                    // Session expired or invalid — clear storage and redirect to login
                     if (window.location.pathname !== '/login') {
-                        useToastStore.getState().addToast(
-                            status === 403 ? 'Access denied' : 'Session expired. Please log in again.',
+                        localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
+                        localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_STORAGE);
+                        toastStore.addToast(
+                            'Session expired. Please log in again.',
                             'error'
                         );
-
-                        // Small delay allows Toast to register visually before full redirect
                         setTimeout(() => {
                             window.location.href = '/login';
                         }, 800);
                     }
-                }
+                    break;
+
+                case 403:
+                    // Forbidden — show access denied, but do not redirect
+                    toastStore.addToast(
+                        'Access denied. You do not have permission for this action.',
+                        'error'
+                    );
+                    break;
+
+                case 402:
+                    // Payment Required — API request balance exhausted
+                    toastStore.addToast(
+                        'API quota exhausted. Please purchase a new plan to continue.',
+                        'error'
+                    );
+                    if (window.location.pathname !== '/b2b/billing') {
+                        setTimeout(() => {
+                            window.location.href = '/b2b/billing';
+                        }, 1200);
+                    }
+                    break;
+
+                default:
+                    break;
             }
         }
 

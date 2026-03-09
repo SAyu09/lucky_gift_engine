@@ -1,6 +1,9 @@
+// src/app/(dashboard)/b2b/dashboard/page.tsx
 "use client";
 
 import Link from "next/link";
+import { useAuthStore } from "@/store/useAuthStore";
+import { PaymentStatus } from "@/types/auth.types";
 import {
   Settings,
   Key,
@@ -12,10 +15,19 @@ import {
   Zap,
   ArrowRight,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 
 export default function B2BDashboardPage() {
-  // Mock data - replace with actual API calls
+  const { user, paymentStatus } = useAuthStore();
+
+  // 🟢 NEW FLOW LOGIC: Check if API Keys exist via backend credentials
+  const credentials = user?.clientCredentials;
+  const hasAnyKey = credentials?.hasTestApiKey || credentials?.hasLiveApiKey;
+  const isPending = paymentStatus !== PaymentStatus.PAID;
+  const showApiWarning = isPending || !hasAnyKey;
+
+  // Mock data - replace with actual API calls in the future
   const stats = {
     totalSpins: "1,284,092",
     activeConfigs: 3,
@@ -81,39 +93,42 @@ export default function B2BDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 pb-10">
+      {/* ─── Header ─── */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
           Client Dashboard
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Welcome back! Manage your gamification engine and monitor performance.
+          Welcome back{user?.name ? `, ${user.name}` : ''}! Manage your gamification engine and monitor performance.
         </p>
       </div>
 
-      {/* API Key Warning */}
-      <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <h3 className="text-sm font-semibold text-red-900 dark:text-red-300">
-            Missing or invalid B2B API Key
-          </h3>
-          <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-            Please configure it in Local Storage or contact Admin.
-          </p>
+      {/* ─── Dynamic API Key Warning (New Flow) ─── */}
+      {showApiWarning && (
+        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+          <ShieldAlert className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-300">
+              Developer Suite Not Activated
+            </h3>
+            <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+              You need to unlock your API access to generate your system credentials and webhooks. 
+              The engine will not accept spins until this is complete.
+            </p>
+          </div>
+          <Link
+            href="/b2b/api-keys"
+            className="text-sm font-bold text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 whitespace-nowrap bg-amber-100 dark:bg-amber-500/20 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Unlock Now →
+          </Link>
         </div>
-        <Link
-          href="/b2b/api-keys"
-          className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 whitespace-nowrap"
-        >
-          Configure Now →
-        </Link>
-      </div>
+      )}
 
-      {/* Stats Grid */}
+      {/* ─── Stats Grid ─── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 backdrop-blur-sm">
+        <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -123,7 +138,7 @@ export default function B2BDashboardPage() {
                 {stats.totalSpins}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-lg bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center">
               <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
@@ -135,7 +150,7 @@ export default function B2BDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 backdrop-blur-sm">
+        <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -145,7 +160,7 @@ export default function B2BDashboardPage() {
                 {stats.activeConfigs}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center">
               <Settings className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
@@ -156,7 +171,7 @@ export default function B2BDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 backdrop-blur-sm">
+        <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -166,7 +181,7 @@ export default function B2BDashboardPage() {
                 {stats.apiCalls24h}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center">
               <Key className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
@@ -177,7 +192,7 @@ export default function B2BDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 backdrop-blur-sm">
+        <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -187,7 +202,7 @@ export default function B2BDashboardPage() {
                 {stats.successRate}
               </p>
             </div>
-            <div className="h-12 w-12 rounded-lg bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center">
               <TrendingUp className="h-6 w-6 text-orange-600 dark:text-orange-400" />
             </div>
           </div>
@@ -199,7 +214,7 @@ export default function B2BDashboardPage() {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* ─── Quick Actions ─── */}
       <div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
           Quick Actions
@@ -211,17 +226,17 @@ export default function B2BDashboardPage() {
               <Link
                 key={action.href}
                 href={action.href}
-                className="group bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 backdrop-blur-sm"
+                className="group bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/5 rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
               >
                 <div className="flex items-start justify-between">
                   <div
-                    className={`h-12 w-12 rounded-lg ${action.iconBg} flex items-center justify-center`}
+                    className={`h-12 w-12 rounded-xl ${action.iconBg} flex items-center justify-center`}
                   >
                     <Icon className={`h-6 w-6 ${action.iconColor}`} />
                   </div>
-                  <ArrowRight className="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="h-5 w-5 text-gray-400 dark:text-gray-600 group-hover:text-purple-500 dark:group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-5">
                   {action.title}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -233,20 +248,20 @@ export default function B2BDashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 backdrop-blur-sm">
+      {/* ─── Recent Activity ─── */}
+      <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             Recent Activity
           </h2>
           <Link
             href="/b2b/transactions"
-            className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+            className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
           >
             View All →
           </Link>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-2">
           {[
             {
               user: "user_12345",
@@ -275,26 +290,26 @@ export default function B2BDashboardPage() {
           ].map((activity, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-purple-500/10 last:border-0"
+              className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors border border-transparent dark:border-white/5"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center">
                   <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {activity.user}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Won: {activity.reward}
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                    Won: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{activity.reward}</span>
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400">
                   {activity.status}
                 </span>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-medium">
                   {activity.time}
                 </p>
               </div>

@@ -30,7 +30,7 @@ export function SpinControls() {
         executeSpin(giftId, amount),
         new Promise(resolve => setTimeout(resolve, 800))
       ]);
-      setResult(spinRes);
+      setResult(spinRes as unknown as SpinResultData);
     } catch (err) {
       console.error('Spin failed', err);
     } finally {

@@ -59,7 +59,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      await register(formData.email, formData.password, formData.role);
+      await register(formData.email, formData.password, formData.name, formData.role); 
       addToast("Welcome to Lucky Engine!", "success");
 
       if (formData.role === Role.B2B_CLIENT) {

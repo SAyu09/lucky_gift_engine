@@ -1,109 +1,202 @@
 // src/hooks/api/useB2B.ts
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/apiClient';
-import { useAuthStore } from '@/store/useAuthStore';
-import { GiftConfig } from '@/types/gift.types';
-import { HEADERS } from '@/lib/constants';
+import {
+    GiftConfig,
+    CreateConfigResponse,
+    ListConfigsResponse,
+    GetConfigResponse,
+    ActivePoolResponse,
+    PoolStatusResponse,
+} from '@/types/gift.types';
+import { PoolAnalyticsResponse } from '@/types/admin.types';
+import { PoolResetResponse } from '@/types/admin.types';
 
+/**
+ * B2B hook — wraps all B2B Client API calls.
+ */
 export const useB2B = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    /**
-     * Fetch all configurations for the authenticated B2B client
-     */
-    const getConfigs = useCallback(async () => {
+    const parseError = (err: unknown, fallback: string): string => {
+        const e = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+        return e.response?.data?.message || e.response?.data?.error || e.message || fallback;
+    };
+
+    const getConfigs = useCallback(async (): Promise<GiftConfig[]> => {
         setIsLoading(true);
         setError(null);
         try {
-            const apiKey = typeof window !== 'undefined' ? localStorage.getItem('b2b-api-key') : null;
-
-            if (!apiKey || apiKey.length < 32) {
-                const msg = 'Missing or invalid B2B API Key. Please configure it in Local Storage or contact Admin.';
-                setError(msg);
-                throw new Error(msg);
-            }
-
-            const response = await apiClient.get<{ configs: GiftConfig[] }>('/client/config', {
-                headers: {
-                    [HEADERS.API_KEY]: apiKey,
-                }
-            });
+            const response = await apiClient.get<ListConfigsResponse>('/client/config');
             return response.data.configs;
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } }, message?: string };
-            const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch configurations';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch configurations');
+            setError(message);
+            throw new Error(message);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    /**
-     * Create a new Gift Configuration
-     */
-    const createConfig = useCallback(async (configData: {
+    const getConfig = useCallback(async (giftId: number): Promise<GiftConfig> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.get<GetConfigResponse>(`/client/config/${giftId}`);
+            return response.data.config;
+        } catch (err) {
+            const message = parseError(err, `Failed to fetch config for gift ${giftId}`);
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const createConfig = useCallback(async (data: {
         giftId: number;
         name: string;
         entryPrice: number;
-        targetRtpPercent: number;
-        probabilityTable: Array<{ multiplier: number; probability: number }>;
-    }) => {
+        targetRtpPercent?: number;
+        probabilityTable?: Array<{ multiplier: number; probability: number }>;
+    }): Promise<GiftConfig> => {
         setIsLoading(true);
         setError(null);
         try {
-            const apiKey = typeof window !== 'undefined' ? localStorage.getItem('b2b-api-key') : null;
-
-            if (!apiKey || apiKey.length < 32) {
-                const msg = 'Missing or invalid B2B API Key. Please configure it in Local Storage or contact Admin.';
-                setError(msg);
-                throw new Error(msg);
-            }
-
-            const response = await apiClient.post<{ config: GiftConfig }>('/client/config', configData, {
-                headers: {
-                    [HEADERS.API_KEY]: apiKey,
-                }
-            });
+            const response = await apiClient.post<CreateConfigResponse>('/client/config', data);
             return response.data.config;
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } }, message?: string };
-            const errorMessage = error.response?.data?.error || error.message || 'Failed to create configuration';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+        } catch (err) {
+            const message = parseError(err, 'Failed to create configuration');
+            setError(message);
+            throw new Error(message);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    /**
-     * Delete a specific Gift Configuration by ID
-     */
-    const deleteConfig = useCallback(async (giftId: number) => {
+    const updateConfig = useCallback(async (
+        giftId: number,
+        data: Partial<Pick<GiftConfig, 'name' | 'entryPrice' | 'targetRtpPercent' | 'probabilityTable' | 'isActive'>>
+    ): Promise<GiftConfig> => {
         setIsLoading(true);
         setError(null);
         try {
-            const apiKey = typeof window !== 'undefined' ? localStorage.getItem('b2b-api-key') : null;
+            const response = await apiClient.put<{ success: boolean; config: GiftConfig }>(
+                `/client/config/${giftId}`,
+                data
+            );
+            return response.data.config;
+        } catch (err) {
+            const message = parseError(err, `Failed to update config for gift ${giftId}`);
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
-            if (!apiKey || apiKey.length < 32) {
-                const msg = 'Missing or invalid B2B API Key. Please configure it in Local Storage or contact Admin.';
-                setError(msg);
-                throw new Error(msg);
-            }
-
-            // Assuming backend uses the actual numerical ID for the DELETE route param
-            const response = await apiClient.delete<{ message: string }>(`/client/config/${giftId}`, {
-                headers: {
-                    [HEADERS.API_KEY]: apiKey,
-                }
-            });
+    const deleteConfig = useCallback(async (giftId: number): Promise<string> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.delete<{ success: boolean; message: string }>(
+                `/client/config/${giftId}`
+            );
             return response.data.message;
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } }, message?: string };
-            const errorMessage = error.response?.data?.error || error.message || 'Failed to delete configuration';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+        } catch (err) {
+            const message = parseError(err, `Failed to delete config for gift ${giftId}`);
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const getAnalytics = useCallback(async (): Promise<PoolAnalyticsResponse['data']> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.get<PoolAnalyticsResponse>('/client/analytics');
+            return response.data.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch analytics');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // 🟢 FIXED: Accepts environment mode and returns full response to expose webhookSecret
+    const updateWebhook = useCallback(async (webhookUrl: string, mode: 'test' | 'live'): Promise<any> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.put(
+                '/client/profile/webhook',
+                { webhookUrl, mode }
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to update webhook URL');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const getActivePool = useCallback(async (giftId: number): Promise<ActivePoolResponse | null> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.get<ActivePoolResponse>(
+                `/client/pool/active/${giftId}`
+            );
+            return response.data;
+        } catch (err) {
+            const e = err as { response?: { status?: number } };
+            if (e.response?.status === 404) {
+                return null;
+            }
+            const message = parseError(err, `Failed to fetch active pool for gift ${giftId}`);
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const resetPool = useCallback(async (clientId: number, giftId?: number): Promise<PoolResetResponse> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.post<PoolResetResponse>(
+                `/client/clients/${clientId}/reset-pools`,
+                giftId !== undefined ? { giftId } : {}
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to reset pool');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // ─── Initiate Stripe Payment ─────────────────────────────────────────────
+    const initiatePayment = useCallback(async (): Promise<{ checkoutUrl: string; sessionId: string }> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.post<any>('/payments/initiate', {});
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to initiate payment. Please try again.');
+            setError(message);
+            throw new Error(message);
         } finally {
             setIsLoading(false);
         }
@@ -111,8 +204,15 @@ export const useB2B = () => {
 
     return {
         getConfigs,
+        getConfig,
         createConfig,
+        updateConfig,
         deleteConfig,
+        getAnalytics,
+        updateWebhook,
+        getActivePool,
+        resetPool,
+        initiatePayment,
         isLoading,
         error,
     };

@@ -20,7 +20,7 @@ export default function RegisterPromptModal() {
     let scrollTriggered = false;
     let timeTriggered = false;
 
-    // Show after 15 seconds
+    // Show after 10 seconds
     const timer = setTimeout(() => {
       if (!hasShown && !scrollTriggered) {
         timeTriggered = true;
@@ -28,7 +28,7 @@ export default function RegisterPromptModal() {
         setHasShown(true);
         sessionStorage.setItem("hasSeenRegisterModal", "true");
       }
-    }, 15000);
+    }, 10000);
 
     // Show after scrolling 50% of page
     const handleScroll = () => {

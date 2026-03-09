@@ -1,13 +1,14 @@
 // src/store/useAuthStore.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { User, Role } from '@/types/auth.types';
+import { User, Role, PaymentStatus } from '@/types/auth.types';
 import { LOCAL_STORAGE_KEYS } from '@/lib/constants';
 
 interface AuthState {
     user: User | null;
     token: string | null;
     role: Role | null;
+    paymentStatus: PaymentStatus | null;
     isAuthenticated: boolean;
     login: (user: User, token: string) => void;
     logout: () => void;
@@ -20,10 +21,11 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             token: null,
             role: null,
+            paymentStatus: null,
             isAuthenticated: false,
 
             login: (user: User, token: string) => {
-                // Ensure localStorage syncs in case it wasn't already handled
+                // Sync token to localStorage for apiClient interceptor
                 if (typeof window !== 'undefined') {
                     localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN, token);
                 }
@@ -31,6 +33,7 @@ export const useAuthStore = create<AuthState>()(
                     user,
                     token,
                     role: user.role,
+                    paymentStatus: user.paymentStatus ?? PaymentStatus.PENDING,
                     isAuthenticated: true,
                 });
             },
@@ -43,6 +46,7 @@ export const useAuthStore = create<AuthState>()(
                     user: null,
                     token: null,
                     role: null,
+                    paymentStatus: null,
                     isAuthenticated: false,
                 });
             },
@@ -51,20 +55,20 @@ export const useAuthStore = create<AuthState>()(
                 set({
                     user,
                     role: user.role,
-                    // We don't change `isAuthenticated` or `token` here 
-                    // to prevent accidentally logging out if a simple user update happens
+                    paymentStatus: user.paymentStatus ?? PaymentStatus.PENDING,
                 });
             },
         }),
         {
-            name: 'auth-storage', // name of the item in the storage (must be unique)
-            storage: createJSONStorage(() => localStorage), // (optional) by default, 'localStorage' is used
+            name: LOCAL_STORAGE_KEYS.AUTH_STORAGE,
+            storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
                 user: state.user,
                 token: state.token,
                 role: state.role,
-                isAuthenticated: state.isAuthenticated
-            }), // Persist these fields
+                paymentStatus: state.paymentStatus,
+                isAuthenticated: state.isAuthenticated,
+            }),
         }
     )
 );

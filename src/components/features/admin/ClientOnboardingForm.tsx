@@ -27,10 +27,10 @@ export function ClientOnboardingForm() {
     try {
       const result = await createClient(name, webhookUrl || undefined);
       setSuccessData({
-        id: result.client.id,
-        companyName: result.client.companyName,
-        rawApiKey: result.rawApiKey,
-        webhookSecret: result.webhookSecret,
+        id: String(result.data.clientId),
+        companyName: result.data.name,
+        rawApiKey: result.data.rawApiKey,
+        webhookSecret: result.data.webhookSecret,
       });
     } catch (err) {
       console.error('Client creation failed', err);
