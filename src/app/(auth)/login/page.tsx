@@ -2,18 +2,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/hooks/api/useAuth";
-import { useAuthStore } from "@/store/useAuthStore";
 import { useToastStore } from "@/store/useToastStore";
 import { Loader2, Mail, Lock } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const { login } = useAuth();
-  const { user } = useAuthStore();
   const { addToast } = useToastStore();
 
   const [formData, setFormData] = useState({
@@ -33,44 +28,17 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password);
+      // Routing is handled inside useAuth.login() based on role — no need to repeat here
       addToast("Successfully authenticated", "success");
-
-      // Grab updated user from Zustand instantly to route
-      // Wait a tick for Zustand propagation if necessary, though login should mutate it immediately
-      const currentUserRole = useAuthStore.getState().user?.role;
-
-      switch (currentUserRole) {
-        case "ADMIN":
-          router.push("/admin/users");
-          break;
-        case "B2B_CLIENT":
-          router.push("/b2b/configurations");
-          break;
-        case "USER":
-          router.push("/user/play");
-          break;
-        default:
-          router.push("/");
-      }
     } catch (err: unknown) {
-      const error = err as {
-        response?: { data?: { error?: string } };
-        message?: string;
-      };
-      const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Login failed. Invalid credentials.";
-      addToast(errorMessage, "error");
+      const error = err as { message?: string };
+      addToast(error.message || "Login failed. Invalid credentials.", "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // If already logged in implicitly, perhaps redirect or let layout handle
-  if (user) {
-    // A more advanced flow might detect this and auto push
-  }
+
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 relative overflow-hidden">

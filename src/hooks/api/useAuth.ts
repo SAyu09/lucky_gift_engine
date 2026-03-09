@@ -3,8 +3,20 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/apiClient';
 import { useAuthStore } from '@/store/useAuthStore';
-import { LoginResponse, RegisterResponse, User, Role } from '@/types/auth.types';
+import {
+    LoginResponse,
+    RegisterResponse,
+    MeResponse,
+    LogoutResponse,
+    User,
+    Role,
+} from '@/types/auth.types';
+import { ROLE_ROUTES } from '@/lib/constants';
 
+/**
+ * Auth hook — wraps all authentication API calls.
+ * Keeps business logic (routing, store updates) in one place.
+ */
 export const useAuth = () => {
     const router = useRouter();
     const { login: storeLogin, logout: storeLogout, setUser } = useAuthStore();
@@ -12,149 +24,154 @@ export const useAuth = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // ─── Helper: parse backend error message ─────────────────────────────────
+    const parseError = (err: unknown, fallback: string): string => {
+        const e = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+        return (
+            e.response?.data?.message ||
+            e.response?.data?.error ||
+            e.message ||
+            fallback
+        );
+    };
+
+    // ─── Login ────────────────────────────────────────────────────────────────
     /**
-     * Login function calling /api/auth/login
+     * POST /api/auth/login
+     * Backend returns: { success, message, data: { token, user: { id, email, role, name, createdAt, clientCredentials } } }
      */
-    const login = useCallback(async (email: string, passwordHash: string) => {
+    const login = useCallback(async (email: string, password: string) => {
         setIsLoading(true);
         setError(null);
         try {
             const response = await apiClient.post<LoginResponse>('/auth/login', {
                 email,
-                password: passwordHash, // Backend expects 'password' key
+                password,
             });
 
-            // Backend wraps the payload in `data`
-            const { user, token } = response.data.data;
+            const { user: rawUser, token } = response.data.data;
 
-            // Update global Zustand store (and localStorage via persist)
-            // Note: We're mapping the smaller user payload from LoginResponse to the full User type here temporarily
-            // Ideally backend returns full User object on login too.
-            storeLogin({
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                name: null, // Defaulting as it's missing from typical login response short-form
-                createdAt: new Date().toISOString(), // Mocking dates to satisfy User type
-                updatedAt: new Date().toISOString(),
-            }, token);
+            // Map backend user shape to full frontend User type
+            const user: User = {
+                id: rawUser.id,
+                email: rawUser.email,
+                role: rawUser.role,
+                name: rawUser.name ?? null,
+                createdAt: rawUser.createdAt ?? new Date().toISOString(),
+                paymentStatus: rawUser.paymentStatus,
+                clientCredentials: rawUser.clientCredentials, // 🟢 Securely mapped from backend
+            };
 
-            // Route based on role
-            switch (user.role) {
-                case Role.ADMIN:
-                    router.push('/admin/global-stats');
-                    break;
-                case Role.B2B_CLIENT:
-                    router.push('/b2b/configurations');
-                    break;
-                case Role.USER:
-                default:
-                    router.push('/user/play');
-                    break;
+            storeLogin(user, token);
+
+            // B2B_CLIENTs need to set up their API keys before seeing the dashboard.
+            // 🟢 FIXED: Now strictly checks the backend truth instead of local storage!
+            let destination: string;
+            if (user.role === Role.B2B_CLIENT) {
+                const hasApiKey = user.clientCredentials?.hasTestApiKey || user.clientCredentials?.hasLiveApiKey;
+                destination = hasApiKey ? ROLE_ROUTES[Role.B2B_CLIENT] : '/b2b/api-keys';
+            } else {
+                destination = ROLE_ROUTES[user.role] ?? '/';
             }
+            router.push(destination);
 
             return response.data;
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string } }, message?: string };
-            const errorMessage = error.response?.data?.error || error.message || 'Login failed';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+        } catch (err) {
+            const message = parseError(err, 'Login failed. Invalid credentials.');
+            setError(message);
+            throw new Error(message);
         } finally {
             setIsLoading(false);
         }
     }, [router, storeLogin]);
 
+    // ─── Register ─────────────────────────────────────────────────────────────
     /**
-     * Register function calling /api/auth/register
+     * POST /api/auth/register
+     * Backend returns: { success, message, data: { id, email, name, role, createdAt } }
+     * NOTE: Registration does NOT return a token — user must login after registering.
      */
-    const register = useCallback(async (email: string, passwordHash: string, role: Role = Role.USER) => {
+    const register = useCallback(async (
+        email: string,
+        password: string,
+        name?: string,
+        role: Role = Role.USER
+    ) => {
         setIsLoading(true);
         setError(null);
         try {
             const response = await apiClient.post<RegisterResponse>('/auth/register', {
                 email,
-                password: passwordHash, // Backend expects 'password' key
+                password,
+                name,
                 role,
             });
 
-            // Backend wraps payload in `data` for register
-            const payload = response.data.data;
-            // Register doesn't return a token in our backend
-            const user = payload;
-            const token = undefined;
-
-            // If the backend auto-logs in and returns the user object and token:
-            if (user && token) {
-                storeLogin({
-                    id: user.id || 'temp-id',
-                    email: user.email || email,
-                    role: user.role || role,
-                    name: null,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                }, token);
-
-                // Default routing after register usually goes to the specific dashboard for that role
-                switch (user.role) {
-                    case Role.ADMIN:
-                        router.push('/admin/global-stats');
-                        break;
-                    case Role.B2B_CLIENT:
-                        router.push('/b2b/configurations');
-                        break;
-                    case Role.USER:
-                    default:
-                        router.push('/user/play');
-                        break;
-                }
-            } else {
-                // If the backend just returns a success message (200/201), route to login
-                router.push('/login');
-            }
+            // Backend explicitly does NOT return a token on register.
+            // Always redirect to /login so the user can start an authenticated session.
+            router.push('/login');
 
             return response.data;
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string, message?: string } }, message?: string };
-            const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Registration failed';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+        } catch (err) {
+            const message = parseError(err, 'Registration failed.');
+            setError(message);
+            throw new Error(message);
         } finally {
             setIsLoading(false);
         }
-    }, [router, storeLogin]);
+    }, [router]);
 
+    // ─── Logout ───────────────────────────────────────────────────────────────
     /**
-     * Logout function
-     * Clears state and redirects to login
+     * POST /api/auth/logout (protected — requires Bearer token)
+     * Backend sets activeToken = null, invalidating the session server-side.
+     * CRITICAL: not calling this leaves "ghost sessions" that old tokens can reuse.
      */
-    const logout = useCallback(() => {
-        storeLogout();
-        // Optional: Call theoretical /api/auth/logout on backend if it invalidates tokens server-side
-        // apiClient.post('/auth/logout').catch(console.error);
-
-        router.push('/login');
+    const logout = useCallback(async () => {
+        try {
+            // Always call backend first to invalidate the server-side session
+            await apiClient.post<LogoutResponse>('/auth/logout');
+        } catch {
+            // Even if the backend call fails (e.g., token already expired),
+            // we still clear local state to ensure the user is logged out locally.
+        } finally {
+            storeLogout();
+            router.push('/login');
+        }
     }, [router, storeLogout]);
 
+    // ─── Get Me ───────────────────────────────────────────────────────────────
     /**
-     * Get current user (Me) function calling /api/auth/me
-     * Useful for refreshing user state on reload if we want fresh DB state
+     * GET /api/auth/me (protected — requires Bearer token)
+     * Backend returns: { success, data: { id, email, name, profileImage, role, createdAt, clientCredentials } }
+     * Used to refresh user state on page load / hydration.
      */
-    const getMe = useCallback(async () => {
+    const getMe = useCallback(async (): Promise<User> => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await apiClient.get<{ user: User }>('/auth/me');
-            setUser(response.data.user);
-            return response.data.user;
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { error?: string }, status?: number }, message?: string };
-            const errorMessage = error.response?.data?.error || error.message || 'Failed to fetch user profile';
-            setError(errorMessage);
-            // If fetching 'me' fails, token is likely invalid. Logout just in case.
-            if (error.response?.status === 401) {
-                logout();
+            const response = await apiClient.get<MeResponse>('/auth/me');
+            const rawUser = response.data.data; // Backend wraps in .data
+
+            const user: User = {
+                ...rawUser,
+                paymentStatus: rawUser.paymentStatus,
+                clientCredentials: rawUser.clientCredentials, // 🟢 Securely mapped from backend
+            };
+
+            setUser(user);
+            return user;
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch user profile.');
+            setError(message);
+
+            const e = err as { response?: { status?: number } };
+            if (e.response?.status === 401) {
+                // Token is stale — force logout (apiClient interceptor also handles this,
+                // but explicit logout ensures Zustand store is cleared cleanly)
+                await logout();
             }
-            throw new Error(errorMessage);
+            throw new Error(message);
         } finally {
             setIsLoading(false);
         }
