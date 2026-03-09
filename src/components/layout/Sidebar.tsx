@@ -9,11 +9,9 @@ import { Role } from "@/types/auth.types";
 import {
   Users,
   BarChart2,
-  Settings,
   Key,
   List,
   Wallet,
-  PlayCircle,
   X,
   Database,
   Receipt,
@@ -21,7 +19,6 @@ import {
   Shield,
   Sliders,
   Building2,
-  CreditCard,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -72,21 +69,11 @@ export function Sidebar() {
             href: "/b2b/dashboard",
             icon: BarChart2,
           },
-          {
-            name: "Gift Configuration",
-            href: "/b2b/configurations",
-            icon: Settings,
-          },
           { name: "API & Developer", href: "/b2b/api-keys", icon: Key },
           { name: "Reward Pool", href: "/b2b/reward-pool", icon: Database },
           { name: "Transaction Logs", href: "/b2b/transactions", icon: List },
           { name: "Billing Controls", href: "/b2b/billing", icon: Receipt },
-          { name: "Pricing", href: "/b2b/pricing", icon: CreditCard },
-        ];
-      case Role.USER:
-        return [
-          { name: "Play", href: "/user/play", icon: PlayCircle },
-          { name: "Wallet", href: "/user/wallet", icon: Wallet },
+          { name: "Wallet", href: "/b2b/wallet", icon: Wallet },
         ];
       default:
         return [];

@@ -82,10 +82,10 @@ export default function B2BDashboardPage() {
       iconColor: "text-violet-400",
     },
     {
-      title: "Pricing Plans",
+      title: "Wallet",
       description: "View & Upgrade Plans",
       icon: Zap,
-      href: "/b2b/pricing",
+      href: "/b2b/wallet",
       color: "from-amber-500 to-yellow-500",
       iconBg: "bg-amber-500/10",
       iconColor: "text-amber-400",
@@ -100,7 +100,8 @@ export default function B2BDashboardPage() {
           Client Dashboard
         </h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Welcome back{user?.name ? `, ${user.name}` : ''}! Manage your gamification engine and monitor performance.
+          Welcome back{user?.name ? `, ${user.name}` : ""}! Manage your
+          gamification engine and monitor performance.
         </p>
       </div>
 
@@ -113,8 +114,9 @@ export default function B2BDashboardPage() {
               Developer Suite Not Activated
             </h3>
             <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-              You need to unlock your API access to generate your system credentials and webhooks. 
-              The engine will not accept spins until this is complete.
+              You need to unlock your API access to generate your system
+              credentials and webhooks. The engine will not accept spins until
+              this is complete.
             </p>
           </div>
           <Link
@@ -301,7 +303,10 @@ export default function B2BDashboardPage() {
                     {activity.user}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                    Won: <span className="text-emerald-600 dark:text-emerald-400 font-medium">{activity.reward}</span>
+                    Won:{" "}
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                      {activity.reward}
+                    </span>
                   </p>
                 </div>
               </div>

@@ -12,7 +12,7 @@ export default function DashboardLayout({
   return (
     // Top level RoleGuard ensures *no one* can see the dashboard shell without auth at all
     // We allow all roles here; specific routes (e.g., /admin/...) will need additional deeper RoleGuards or Server Side checks
-    <RoleGuard allowedRoles={[Role.ADMIN, Role.B2B_CLIENT, Role.USER]}>
+    <RoleGuard allowedRoles={[Role.ADMIN, Role.B2B_CLIENT]}>
       <div className="flex h-screen bg-gray-50 dark:bg-[#191022] font-sans text-gray-900 dark:text-gray-100 antialiased overflow-hidden">
         {/* Sidebar Component */}
         <Sidebar />

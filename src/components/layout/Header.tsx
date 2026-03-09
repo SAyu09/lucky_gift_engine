@@ -63,7 +63,10 @@ export function Header() {
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Payment / Billing Preparation */}
         {showBilling && (
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200/50 rounded-full cursor-pointer hover:shadow-sm hover:-translate-y-0.5 transition-all group mr-2">
+          <div
+            onClick={() => router.push("/b2b/wallet")}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200/50 rounded-full cursor-pointer hover:shadow-sm hover:-translate-y-0.5 transition-all group mr-2"
+          >
             <Coins className="h-4 w-4 text-yellow-500 group-hover:animate-pulse" />
             <span className="text-sm font-bold text-yellow-700">54,320</span>
             <div className="w-px h-4 bg-yellow-200/60 mx-1"></div>

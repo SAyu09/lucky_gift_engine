@@ -27,7 +27,7 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     name: "",
-    role: Role.USER,
+    role: Role.B2B_CLIENT, // Default to B2B_CLIENT
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,13 +59,22 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      await register(formData.email, formData.password, formData.name, formData.role); 
+      await register(
+        formData.email,
+        formData.password,
+        formData.name,
+        formData.role,
+      );
       addToast("Welcome to Lucky Engine!", "success");
 
+      // Redirect based on role
       if (formData.role === Role.B2B_CLIENT) {
-        router.push("/b2b/configurations");
+        router.push("/b2b/dashboard");
+      } else if (formData.role === Role.ADMIN) {
+        router.push("/admin/dashboard");
       } else {
-        router.push("/user/play");
+        // If somehow USER role is selected, redirect to login
+        router.push("/login");
       }
     } catch (err: unknown) {
       const error = err as {
@@ -262,7 +271,6 @@ export default function RegisterPage() {
               <form onSubmit={handleSubmit} className="space-y-3.5">
                 {/* ── Role selection ── */}
                 <div>
-                  
                   <div className="grid grid-cols-2 gap-3">
                     {/* Player */}
 
