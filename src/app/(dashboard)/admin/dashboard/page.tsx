@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/hooks/api/useAdmin";
-import { PoolAnalyticsResponse } from "@/types/admin.types";
+import { DashboardStatsResponse } from "@/types/admin.types";
 import {
   Users,
   Building2,
@@ -21,30 +21,28 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const { getClientAnalytics, isLoading } = useAdmin();
-  const [dashboardData, setDashboardData] = useState<PoolAnalyticsResponse["data"] | null>(null);
+  const { getDashboardStats, isLoading } = useAdmin();
+  const [dashboardData, setDashboardData] = useState<DashboardStatsResponse["data"] | null>(null);
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Pass 0 or a known wildcard if the backend supports global fetching, 
-        // else we might just fetch the first client for demo purposes if global isn't built yet.
-        // Assuming the backend has a way to handle global admin analytics here.
-        const data = await getClientAnalytics(0); 
-        setDashboardData(data);
+        const response = await getDashboardStats();
+        setDashboardData(response.data);
       } catch (err) {
-        console.error("Failed to load admin analytics", err);
+        console.error("Failed to load admin stats", err);
       }
     }
     fetchStats();
-  }, [getClientAnalytics]);
+  }, [getDashboardStats]);
 
   // Derived dynamic stats
   const stats = {
-    totalClients: dashboardData?.clients?.length || 0,
-    activeUsers: dashboardData?.overallAnalytics.totalSpinsProcessed || "0", // Rough proxy
-    totalRevenue: dashboardData?.overallAnalytics.totalHouseProfit 
-      ? `$${dashboardData.overallAnalytics.totalHouseProfit.toLocaleString()}` 
+    totalClients: dashboardData?.metrics.totalActiveClients || 0,
+    activeUsers: dashboardData?.metrics.totalEndUsers || 0,
+    totalSpins: dashboardData?.metrics.totalSpinsProcessed || 0,
+    totalRevenue: dashboardData?.financials.totalWalletRecharges 
+      ? `$${dashboardData.financials.totalWalletRecharges.toLocaleString()}` 
       : "$0",
     systemUptime: "99.9%",
   };
@@ -253,10 +251,10 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <p className="text-sm font-medium text-purple-200 dark:text-purple-300 mb-1">
-            Global Platform Reserve
+            Global Client Liabilities (Liability)
           </p>
           <p className="text-3xl font-bold text-white dark:text-purple-100">
-            $4,285,150.00
+            ${dashboardData?.financials.totalPendingClientBalances.toLocaleString() || "0"}
           </p>
         </div>
 
@@ -265,18 +263,19 @@ export default function AdminDashboardPage() {
             <div className="h-12 w-12 rounded-lg bg-white/10 flex items-center justify-center">
               <Activity className="h-6 w-6 text-white dark:text-blue-300" />
             </div>
-            <div className="flex items-center gap-1 text-red-400">
-              <TrendingDown className="h-4 w-4" />
-              <span className="text-sm font-medium">-2.1%</span>
+            <div className="flex items-center gap-1 text-emerald-400">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-sm font-medium">Live</span>
             </div>
           </div>
           <p className="text-sm font-medium text-blue-200 dark:text-blue-300 mb-1">
-            Total Spins (24h)
+            Total Spins Processed
           </p>
           <p className="text-3xl font-bold text-white dark:text-blue-100">
-            1.2M
+            {stats.totalSpins.toLocaleString() || "0"}
           </p>
         </div>
+
 
         <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 dark:from-emerald-500/20 dark:to-emerald-900/40 border border-emerald-500/20 rounded-xl p-6 backdrop-blur-sm">
           <div className="flex items-center justify-between mb-2">
