@@ -6,44 +6,6 @@ export interface ProbabilityTier {
     probability: number;
 }
 
-// Matches backend Prisma GiftConfig model
-export interface GiftConfig {
-    id: number;
-    giftId: number;
-    clientId: number;
-    name: string;
-    entryPrice: number;
-    targetRtpPercent: number;
-    probabilityTable: ProbabilityTier[];
-    poolSize?: number;
-    houseEdgePercent?: number;
-    prizeDistribution?: Array<{ rank: number; multiplier: number }>;
-    globalReserve?: number;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
-// Matches backend: POST /api/client/config → { success, giftId, config }
-export interface CreateConfigResponse {
-    success: boolean;
-    giftId: number;
-    config: GiftConfig;
-}
-
-// Matches backend: GET /api/client/config → { success, count, configs }
-export interface ListConfigsResponse {
-    success: boolean;
-    count: number;
-    configs: GiftConfig[];
-}
-
-// Matches backend: GET /api/client/config/:giftId → { success, config }
-export interface GetConfigResponse {
-    success: boolean;
-    config: GiftConfig;
-}
-
 // Matches backend hybrid spin result: POST /api/client/spin
 export interface HybridSpinResult {
     transactionId: string;

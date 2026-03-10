@@ -1,14 +1,9 @@
 // src/hooks/api/useAdmin.ts
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/apiClient';
-import { HEADERS } from '@/lib/constants';
 import {
     CreateClientResponse,
-    CreatePlanResponse,
-    SubscribeClientResponse,
     PoolAnalyticsResponse,
-    PoolResetResponse,
-    PlanType,
 } from '@/types/admin.types';
 
 /**
@@ -61,65 +56,6 @@ export const useAdmin = () => {
         }
     }, []);
 
-    // ─── Create Subscription Plan ─────────────────────────────────────────────
-    /**
-     * POST /api/admin/subscriptions/plans
-     * Body: { name, type ('MONTHLY'|'PAY_AS_YOU_GO'), description?, price, maxGifts?, requestQuota?, features? }
-     * Backend returns: { success, data: SubscriptionPlan }
-     */
-    const createSubscriptionPlan = useCallback(async (data: {
-        name: string;
-        type: PlanType;
-        description?: string;
-        price: number;
-        maxGifts?: number;
-        requestQuota?: number;
-        features?: Record<string, unknown>;
-    }) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.post<CreatePlanResponse>(
-                '/admin/subscriptions/plans',
-                data,
-                { headers: adminHeaders() }
-            );
-            return response.data;
-        } catch (err) {
-            const message = parseError(err, 'Failed to create subscription plan');
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    // ─── Subscribe Client to Plan ─────────────────────────────────────────────
-    /**
-     * POST /api/admin/subscriptions/subscribe
-     * Body: { clientId: number, planId: number }
-     * Backend returns: { success, message, data: { clientName, planName, credentials? } }
-     * NOTE: credentials (rawApiKey, webhookSecret) are only returned ONCE on first subscription.
-     */
-    const subscribeClient = useCallback(async (clientId: number, planId: number) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.post<SubscribeClientResponse>(
-                '/admin/subscriptions/subscribe',
-                { clientId, planId },
-                { headers: adminHeaders() }
-            );
-            return response.data;
-        } catch (err) {
-            const message = parseError(err, 'Failed to subscribe client to plan');
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     // ─── Get Client Pool Analytics ────────────────────────────────────────────
     /**
      * GET /api/admin/pools/:clientId
@@ -145,37 +81,9 @@ export const useAdmin = () => {
         }
     }, []);
 
-    // ─── Reset Client Pool ────────────────────────────────────────────────────
-    /**
-     * POST /api/admin/clients/:clientId/reset-pools
-     * Body: { giftId?: number } (omit giftId to reset ALL pools for the client)
-     * Returns list of affected participants so admin can issue refunds.
-     */
-    const resetClientPool = useCallback(async (clientId: number, giftId?: number) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.post<PoolResetResponse>(
-                `/admin/clients/${clientId}/reset-pools`,
-                giftId !== undefined ? { giftId } : {},
-                { headers: adminHeaders() }
-            );
-            return response.data;
-        } catch (err) {
-            const message = parseError(err, 'Failed to reset client pool');
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     return {
         createClient,
-        createSubscriptionPlan,
-        subscribeClient,
         getClientAnalytics,
-        resetClientPool,
         isLoading,
         error,
     };

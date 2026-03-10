@@ -1,15 +1,27 @@
 // src/types/b2b.types.ts
 // Aligned with backend Prisma Client model
 
+export enum PaymentStatus {
+    UNPAID = 'UNPAID',
+    PAID = 'PAID',
+    PENDING = 'PENDING'
+}
+
 export interface Client {
     id: number;
     name: string;               // Backend uses 'name', not 'companyName'
     webhookUrl: string;
     webhookSecret: string | null;
     isActive: boolean;
-    apiRequestsBalance: number;
-    isUnlimited: boolean;
-    planId?: number | null;
+    // Unified Math & Billing properties
+    clientProfitPercent: number;
+    platformCutPercent: number;
+    globalReserve: number;
+    poolSize: number;
+    walletBalance: number;
+    probabilityTable: any;
+    paymentStatus: PaymentStatus;
+    paymentTransactionId?: string;
     createdAt: string;
     updatedAt: string;
 }

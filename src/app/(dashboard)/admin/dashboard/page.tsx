@@ -1,6 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAdmin } from "@/hooks/api/useAdmin";
+import { PoolAnalyticsResponse } from "@/types/admin.types";
 import {
   Users,
   Building2,
@@ -14,14 +17,35 @@ import {
   ArrowRight,
   AlertTriangle,
   Database,
+  Loader2,
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  // Mock data - replace with actual API calls
+  const { getClientAnalytics, isLoading } = useAdmin();
+  const [dashboardData, setDashboardData] = useState<PoolAnalyticsResponse["data"] | null>(null);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        // Pass 0 or a known wildcard if the backend supports global fetching, 
+        // else we might just fetch the first client for demo purposes if global isn't built yet.
+        // Assuming the backend has a way to handle global admin analytics here.
+        const data = await getClientAnalytics(0); 
+        setDashboardData(data);
+      } catch (err) {
+        console.error("Failed to load admin analytics", err);
+      }
+    }
+    fetchStats();
+  }, [getClientAnalytics]);
+
+  // Derived dynamic stats
   const stats = {
-    totalClients: 24,
-    activeUsers: "12,847",
-    totalRevenue: "$45,320",
+    totalClients: dashboardData?.clients?.length || 0,
+    activeUsers: dashboardData?.overallAnalytics.totalSpinsProcessed || "0", // Rough proxy
+    totalRevenue: dashboardData?.overallAnalytics.totalHouseProfit 
+      ? `$${dashboardData.overallAnalytics.totalHouseProfit.toLocaleString()}` 
+      : "$0",
     systemUptime: "99.9%",
   };
 

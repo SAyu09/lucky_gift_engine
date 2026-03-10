@@ -1,9 +1,12 @@
 // src/app/(dashboard)/b2b/dashboard/page.tsx
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useB2B } from "@/hooks/api/useB2B";
 import { PaymentStatus } from "@/types/auth.types";
+import { PoolAnalyticsResponse } from "@/types/admin.types";
 import {
   Settings,
   Key,
@@ -16,23 +19,43 @@ import {
   ArrowRight,
   AlertCircle,
   ShieldAlert,
+  Loader2,
 } from "lucide-react";
 
 export default function B2BDashboardPage() {
   const { user, paymentStatus } = useAuthStore();
+  const { getAnalytics, isLoading: isFetchingAnalytics } = useB2B();
+
+  const [dashboardData, setDashboardData] = useState<PoolAnalyticsResponse["data"] | null>(null);
+
+  // 🟢 Fetch unified analytics on load
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const data = await getAnalytics();
+        setDashboardData(data);
+      } catch (e) {
+        console.error("Failed to load dashboard data", e);
+      }
+    }
+    // Only fetch if they have active API keys / access (paid)
+    if (user?.paymentStatus === PaymentStatus.PAID) {
+      loadStats();
+    }
+  }, [getAnalytics, user?.paymentStatus]);
 
   // 🟢 NEW FLOW LOGIC: Check if API Keys exist via backend credentials
   const credentials = user?.clientCredentials;
   const hasAnyKey = credentials?.hasTestApiKey || credentials?.hasLiveApiKey;
-  const isPending = paymentStatus !== PaymentStatus.PAID;
+  const isPending = user?.paymentStatus !== PaymentStatus.PAID;
   const showApiWarning = isPending || !hasAnyKey;
 
-  // Mock data - replace with actual API calls in the future
+  // Derive stats dynamically from the backend response
   const stats = {
-    totalSpins: "1,284,092",
-    activeConfigs: 3,
-    apiCalls24h: "45,320",
-    successRate: "99.8%",
+    totalSpins: dashboardData?.overallAnalytics.totalSpinsProcessed.toLocaleString() || "0",
+    activeConfigs: dashboardData?.pools.length || 0,
+    apiCalls24h: "-", // This tracking requires a dedicated API gateway Redis counter, omit for now
+    successRate: dashboardData ? "100%" : "-",
   };
 
   const quickActions = [
