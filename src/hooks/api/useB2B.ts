@@ -90,11 +90,37 @@ export const useB2B = () => {
         }
     }, []);
 
+    const getTransactions = useCallback(async (filters?: any): Promise<any> => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const queryParams = new URLSearchParams();
+            if (filters) {
+                Object.entries(filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null && value !== '') {
+                        queryParams.append(key, String(value));
+                    }
+                });
+            }
+            const queryString = queryParams.toString();
+            const url = `/client/transactions${queryString ? `?${queryString}` : ''}`;
+            const response = await apiClient.get<{ success: boolean; data: any; pagination: any }>(url);
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch transactions');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [parseError]);
+
     return {
         getAnalytics,
         updateWebhook,
         getActivePool,
         initiatePayment,
+        getTransactions,
         isLoading,
         error,
     };
