@@ -65,24 +65,44 @@ Uses Zustand with localStorage persistence:
 All API calls go through custom hooks in `src/hooks/api/`:
 
 - `useAuth.ts` - Login, register, logout, getMe
-- `useAdmin.ts` - Admin operations (client management, analytics, pool resets)
-- `useB2B.ts` - B2B client operations (configs, pools, transactions)
+- `useAdmin.ts` - Admin operations (getDashboardStats, createClient, getClientAnalytics)
+- `useB2B.ts` - B2B client operations (getAnalytics, updateWebhook, getActivePool, initiatePayment)
 - `useEngine.ts` - Gift engine operations (spin, pool status)
+
+**Admin API Functions**:
+- `getDashboardStats()` - GET /api/admin/stats - Global platform metrics
+- `createClient()` - POST /api/admin/clients - Onboard new B2B clients
+- `getClientAnalytics()` - GET /api/admin/pools/:clientId - Client-specific analytics
+
+**B2B API Functions**:
+- `getAnalytics()` - GET /api/client/analytics - Self-service analytics (currently not implemented on backend)
+- `updateWebhook()` - PUT /api/client/profile/webhook - Update webhook URL
+- `getActivePool()` - GET /api/client/pool/active/:giftId - Check active pool status
+- `initiatePayment()` - POST /api/payments/recharge - Stripe payment for wallet recharge
 
 **API Client Interceptors**:
 - **Request**: Automatically attaches `Authorization: Bearer <token>` header from localStorage
+- **Admin Routes**: Adds `X-Role-Context: ADMIN` header which triggers injection of `x-internal-token`
 - **Response**: Handles 401 (session expired → logout), 403 (access denied), 402 (quota exhausted → redirect to billing)
 
 ### Type System
 
 All backend response types are strictly typed in `src/types/`:
 
-- `auth.types.ts` - User, Role, AuthResponse, LoginResponse, etc.
+- `auth.types.ts` - User, Role, AuthResponse, LoginResponse, ClientCredentials
 - `b2b.types.ts` - Client, WebhookPayload, payment responses
-- `gift.types.ts` - GiftConfig, ProbabilityTier, SpinResponse, pool types
-- `admin.types.ts` - Admin-specific responses (analytics, pool resets, subscriptions)
+- `gift.types.ts` - ProbabilityTier, SpinResponse, pool types, LuckyTransaction
+- `admin.types.ts` - Admin-specific responses (CreateClientResponse, PoolAnalyticsResponse, DashboardStatsResponse)
+- `api.types.ts` - Generic ApiResponse<T> wrapper
 
 **Important**: These types mirror the backend Prisma models exactly. Do not modify them without coordinating with backend changes.
+
+**Recent Type Changes** (as of latest git pull):
+- Removed subscription management types (CreatePlanResponse, SubscribeClientResponse)
+- Removed pool reset types (PoolResetResponse)
+- Removed gift configuration types (GiftConfig, CreateConfigResponse, etc.)
+- Added `DashboardStatsResponse` for admin global metrics
+- Updated `PoolAnalyticsResponse` with new financial fields: `totalClientProfit`, `totalPlatformCut`, `totalReserveAdded`
 
 ### Styling
 
@@ -129,3 +149,36 @@ Required environment variables (set via `.env.local`, not committed):
 - The RoleGuard component calls `getMe()` on mount to refresh user state from the backend, ensuring payment status and credentials are always fresh
 - Never bypass the API client interceptors - they handle critical auth and error flows
 - The backend uses Prisma ORM - type definitions here should match Prisma schema exactly
+
+## Common Issues & Troubleshooting
+
+### Admin Dashboard: "Access denied. ADMIN role required"
+
+**Cause**: The `NEXT_PUBLIC_INTERNAL_SERVICE_TOKEN` environment variable is not set.
+
+**Solution**:
+1. Check your backend `.env` file for `INTERNAL_SERVICE_TOKEN`
+2. Create `.env.local` in the frontend root:
+   ```bash
+   NEXT_PUBLIC_API_URL=http://192.168.1.7:3001/api
+   NEXT_PUBLIC_INTERNAL_SERVICE_TOKEN=<copy-from-backend>
+   ```
+3. Restart the dev server: `npm run dev`
+
+**How it works**: Admin routes require `x-internal-token` header. The API client interceptor automatically injects this header when it sees `X-Role-Context: ADMIN` in the request headers.
+
+### B2B Dashboard: "Not found" when fetching analytics
+
+**Cause**: The `/api/client/analytics` endpoint is not implemented on the backend yet.
+
+**Current Status**: Analytics fetch is disabled in `src/app/(dashboard)/b2b/dashboard/page.tsx` (lines 31-45). The dashboard shows fallback values ("0", "-") until the backend implements this endpoint.
+
+### Missing Pages
+
+If you encounter 404 errors for admin routes, check that these pages exist:
+- `/admin/clients` - B2B client onboarding (recently restored)
+- `/admin/dashboard` - Admin overview
+- `/admin/users` - User management
+- `/admin/payments` - Payment controls
+- `/admin/global-rules` - Global configuration
+- `/admin/security` - Security & logs

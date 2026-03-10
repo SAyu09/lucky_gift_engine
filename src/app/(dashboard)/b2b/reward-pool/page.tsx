@@ -8,74 +8,44 @@ import { PaymentStatus } from "@/types/auth.types";
 import {
   Database,
   TrendingUp,
-  TrendingDown,
   Zap,
   RefreshCw,
   AlertTriangle,
   CheckCircle,
-  Users,
   DollarSign,
   Activity,
   BarChart3,
-  Clock,
   Key,
-  Shield,
   Lock,
+  Gift,
 } from "lucide-react";
 import Link from "next/link";
 
-// ─── Types (matches exact /api/client/analytics response) ─────────────────────
-interface PoolMetrics {
-  totalEntries: number;
-  completedMultiplayerRounds: number;
-  totalCollected: number;
-  totalInstantPayout: number;
-  totalPoolPayout: number;
-  totalCombinedPayout: number;
-  houseProfit: number;
-  globalReserveBalance: number;
+// ─── Types (matches actual /api/client/analytics response) ────────────────────
+interface Overall {
+  totalPoolsGenerated: number;
+  totalVolumeInPools: number;
+  totalPayoutsFromPools: number;
 }
 
-interface Pool {
+interface StatusBreakdownItem {
+  status: string;
+  count: number;
+}
+
+interface GiftAnalyticsItem {
   giftId: number;
   name: string;
-  status: "ACTIVE" | "INACTIVE";
-  targetRtpPercent: number;
-  actualRtpPercent: number;
-  metrics: PoolMetrics;
-}
-
-interface InstantSpin {
-  transactionId: string;
-  userId: number;
-  betAmount: number;
-  winAmount: number;
-  multiplier: number;
-  timestamp: string;
-}
-
-interface OverallAnalytics {
-  totalSpinsProcessed: number;
-  totalMultiplayerPoolsCompleted: number;
-  totalCollectedAmount: number;
-  payoutBreakdown: {
-    instantWins: number;
-    poolWins: number;
-    combinedTotal: number;
-  };
-  totalHouseProfit: number;
-  actualGlobalRtp: number;
-  totalRtpShieldInterventions: number;
+  totalPools: number;
+  totalVolume: number;
+  totalPayouts: number;
+  statusBreakdown: StatusBreakdownItem[];
 }
 
 interface AnalyticsData {
-  client: { id: number; name: string; isActive: boolean };
-  overallAnalytics: OverallAnalytics;
-  pools: Pool[];
-  recentActivity: {
-    instantSpins: InstantSpin[];
-    completedPools: unknown[];
-  };
+  overall: Overall;
+  statusBreakdown: StatusBreakdownItem[];
+  giftAnalytics: GiftAnalyticsItem[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -88,20 +58,6 @@ const fmtCurrency = (n: number) =>
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(n);
-
-const rtpColor = (actual: number, target: number) => {
-  const pct = (actual / target) * 100;
-  if (pct >= 80) return "text-emerald-500";
-  if (pct >= 50) return "text-amber-500";
-  return "text-red-500";
-};
-
-const rtpBarColor = (actual: number, target: number) => {
-  const pct = (actual / target) * 100;
-  if (pct >= 80) return "bg-emerald-500";
-  if (pct >= 50) return "bg-amber-500";
-  return "bg-red-500";
-};
 
 const timeAgo = (iso: string) => {
   const diff = Date.now() - new Date(iso).getTime();
@@ -155,16 +111,15 @@ export default function RewardPoolPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-  
-  // 🟢 NEW: Read environment mode to allow switching context
-  const [mode, setMode] = useState<'test' | 'live'>('test');
+
+  const [mode, setMode] = useState<"test" | "live">("test");
 
   const isPending = paymentStatus !== PaymentStatus.PAID;
-  
-  // 🟢 FIXED: Use backend credentials instead of local storage
-  const hasApiKey = mode === 'test' 
-    ? user?.clientCredentials?.hasTestApiKey 
-    : user?.clientCredentials?.hasLiveApiKey;
+
+  const hasApiKey =
+    mode === "test"
+      ? user?.clientCredentials?.hasTestApiKey
+      : user?.clientCredentials?.hasLiveApiKey;
 
   const fetchAnalytics = useCallback(
     async (isRefresh = false) => {
@@ -172,10 +127,11 @@ export default function RewardPoolPage() {
       else setLoading(true);
       setError(null);
       try {
-        // If your backend eventually supports filtering by mode, pass mode here:
-        // const result = await getAnalytics(mode);
-        const result = await getAnalytics(); 
-        setData(result as unknown as AnalyticsData);
+        const result = await getAnalytics();
+        // Support both { success, data: {...} } and direct {...} shapes
+        const raw = result as { success?: boolean; data?: AnalyticsData } & AnalyticsData;
+        const analytics: AnalyticsData = raw.data ?? (raw as unknown as AnalyticsData);
+        setData(analytics);
         setLastRefreshed(new Date());
       } catch (err) {
         const e = err as { message?: string };
@@ -185,13 +141,11 @@ export default function RewardPoolPage() {
         setRefreshing(false);
       }
     },
-    [getAnalytics /*, mode*/]
+    [getAnalytics]
   );
 
   useEffect(() => {
     if (isPending) { setLoading(false); return; }
-    
-    // Only fetch if the user has unlocked the key for this mode
     if (hasApiKey) {
       fetchAnalytics();
     } else {
@@ -199,7 +153,7 @@ export default function RewardPoolPage() {
     }
   }, [hasApiKey, fetchAnalytics, isPending, mode]);
 
-  // ─── Preview / Locked (payment pending) ───────────────────
+  // ─── Preview / Locked ─────────────────────────────────────────────────
   if (isPending) {
     return (
       <div className="space-y-6">
@@ -220,8 +174,6 @@ export default function RewardPoolPage() {
             Unlock Access
           </Link>
         </div>
-
-        {/* Blurred placeholder analytics */}
         <div className="blur-sm opacity-40 pointer-events-none select-none space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
@@ -240,16 +192,24 @@ export default function RewardPoolPage() {
     );
   }
 
-  // ─── No API Key Generated Yet ───────────────────────────────────────
+  // ─── No API Key ────────────────────────────────────────────────────────
   if (!hasApiKey && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-6">
-        {/* Toggle still visible so they can check other environments */}
         <div className="flex bg-gray-100 dark:bg-purple-950/40 p-1.5 rounded-xl border border-gray-200 dark:border-purple-500/20 mb-4">
-          <button onClick={() => setMode('test')} className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'test' ? 'bg-amber-500 text-white shadow-md' : 'text-gray-500'}`}>Test Mode</button>
-          <button onClick={() => setMode('live')} className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${mode === 'live' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-500'}`}>Live Mode</button>
+          <button
+            onClick={() => setMode("test")}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${mode === "test" ? "bg-amber-500 text-white shadow-md" : "text-gray-500"}`}
+          >
+            Test Mode
+          </button>
+          <button
+            onClick={() => setMode("live")}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${mode === "live" ? "bg-emerald-500 text-white shadow-md" : "text-gray-500"}`}
+          >
+            Live Mode
+          </button>
         </div>
-
         <div className="h-16 w-16 rounded-2xl bg-amber-500/10 flex items-center justify-center">
           <Key className="h-8 w-8 text-amber-500" />
         </div>
@@ -269,7 +229,7 @@ export default function RewardPoolPage() {
     );
   }
 
-  // ─── Loading ─────────────────────────────────────────────────────────────
+  // ─── Loading ───────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -284,7 +244,7 @@ export default function RewardPoolPage() {
     );
   }
 
-  // ─── Error ───────────────────────────────────────────────────────────────
+  // ─── Error ─────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -303,45 +263,45 @@ export default function RewardPoolPage() {
 
   if (!data) return null;
 
-  const { client, overallAnalytics: oa, pools, recentActivity } = data;
-  const rtpDelta = oa.actualGlobalRtp - 95; // vs 95% target
+  const { overall, statusBreakdown, giftAnalytics } = data;
+
+  const houseProfit = (overall.totalVolumeInPools ?? 0) - (overall.totalPayoutsFromPools ?? 0);
+  const rtpPct =
+    overall.totalVolumeInPools > 0
+      ? (overall.totalPayoutsFromPools / overall.totalVolumeInPools) * 100
+      : 0;
 
   return (
     <div className="space-y-6">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Reward Pool
-            </h1>
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                client.isActive
-                  ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                  : "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400"
-              }`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${client.isActive ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
-              {client.isActive ? "Active" : "Inactive"}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {client.name} &bull; Client #{client.id}
-            {lastRefreshed && (
-              <span className="ml-2 text-xs">
-                &bull; Updated {timeAgo(lastRefreshed.toISOString())}
-              </span>
-            )}
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Reward Pool
+          </h1>
+          {lastRefreshed && (
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Updated {timeAgo(lastRefreshed.toISOString())}
+            </p>
+          )}
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="flex bg-gray-100 dark:bg-purple-950/40 p-1.5 rounded-xl border border-gray-200 dark:border-purple-500/20">
-            <button onClick={() => setMode('test')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${mode === 'test' ? 'bg-amber-500 text-white shadow-md' : 'text-gray-500'}`}>Test</button>
-            <button onClick={() => setMode('live')} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${mode === 'live' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-500'}`}>Live</button>
+            <button
+              onClick={() => setMode("test")}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${mode === "test" ? "bg-amber-500 text-white shadow-md" : "text-gray-500"}`}
+            >
+              Test
+            </button>
+            <button
+              onClick={() => setMode("live")}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${mode === "live" ? "bg-emerald-500 text-white shadow-md" : "text-gray-500"}`}
+            >
+              Live
+            </button>
           </div>
-          
+
           <button
             type="button"
             onClick={() => fetchAnalytics(true)}
@@ -354,359 +314,230 @@ export default function RewardPoolPage() {
         </div>
       </div>
 
-      {/* ── RTP Shield Warning ───────────────────────────────────────────── */}
-      {oa.totalRtpShieldInterventions > 0 && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-          <Shield className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-              RTP Shield Triggered {oa.totalRtpShieldInterventions} time{oa.totalRtpShieldInterventions > 1 ? "s" : ""}
-            </p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-              The engine downgraded payout(s) to prevent reserve bankruptcy. Actual RTP ({oa.actualGlobalRtp.toFixed(2)}%) is below target (95%). Consider topping up reserve or reviewing probability tables.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* ── Overall Stats ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon={<Zap className="h-5 w-5 text-purple-500" />}
-          label="Total Spins"
-          value={fmt(oa.totalSpinsProcessed)}
-          sub={`${pools.length} active gift${pools.length !== 1 ? "s" : ""}`}
+          icon={<Database className="h-5 w-5 text-purple-500" />}
+          label="Total Pools"
+          value={fmt(overall.totalPoolsGenerated)}
+          sub="Pools generated"
           accent="bg-purple-500/10 dark:bg-purple-500/20"
         />
         <StatCard
           icon={<DollarSign className="h-5 w-5 text-blue-500" />}
-          label="Total Collected"
-          value={fmtCurrency(oa.totalCollectedAmount)}
+          label="Total Volume"
+          value={fmtCurrency(overall.totalVolumeInPools)}
           sub="All pools combined"
           accent="bg-blue-500/10 dark:bg-blue-500/20"
         />
         <StatCard
-          icon={<TrendingUp className="h-5 w-5 text-emerald-500" />}
-          label="House Profit"
-          value={fmtCurrency(oa.totalHouseProfit)}
-          sub={`${(100 - oa.actualGlobalRtp).toFixed(2)}% house edge`}
+          icon={<Zap className="h-5 w-5 text-emerald-500" />}
+          label="Total Payouts"
+          value={fmtCurrency(overall.totalPayoutsFromPools)}
+          sub={`RTP: ${rtpPct.toFixed(2)}%`}
           accent="bg-emerald-500/10 dark:bg-emerald-500/20"
         />
         <StatCard
-          icon={
-            rtpDelta >= 0 ? (
-              <TrendingUp className="h-5 w-5 text-emerald-500" />
-            ) : (
-              <TrendingDown className="h-5 w-5 text-red-500" />
-            )
-          }
-          label="Actual Global RTP"
-          value={`${oa.actualGlobalRtp.toFixed(2)}%`}
-          sub={`Target: 95% (${rtpDelta >= 0 ? "+" : ""}${rtpDelta.toFixed(2)}%)`}
-          accent={
-            rtpDelta >= -10
-              ? "bg-emerald-500/10 dark:bg-emerald-500/20"
-              : "bg-red-500/10 dark:bg-red-500/20"
-          }
+          icon={<TrendingUp className="h-5 w-5 text-amber-500" />}
+          label="House Profit"
+          value={fmtCurrency(houseProfit)}
+          sub={`${(100 - rtpPct).toFixed(2)}% house edge`}
+          accent="bg-amber-500/10 dark:bg-amber-500/20"
         />
       </div>
 
-      {/* ── Payout Breakdown ─────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl p-6">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-purple-500" />
-          Payout Breakdown
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {[
-            {
-              label: "Instant Wins",
-              value: oa.payoutBreakdown.instantWins,
-              color: "bg-purple-500",
-              pct: oa.totalCollectedAmount > 0
-                ? (oa.payoutBreakdown.instantWins / oa.totalCollectedAmount) * 100
-                : 0,
-            },
-            {
-              label: "Pool Wins",
-              value: oa.payoutBreakdown.poolWins,
-              color: "bg-blue-500",
-              pct: oa.totalCollectedAmount > 0
-                ? (oa.payoutBreakdown.poolWins / oa.totalCollectedAmount) * 100
-                : 0,
-            },
-            {
-              label: "Total Payout",
-              value: oa.payoutBreakdown.combinedTotal,
-              color: "bg-emerald-500",
-              pct: oa.totalCollectedAmount > 0
-                ? (oa.payoutBreakdown.combinedTotal / oa.totalCollectedAmount) * 100
-                : 0,
-            },
-          ].map((item) => (
-            <div key={item.label}>
-              <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-gray-600 dark:text-gray-400 font-medium">{item.label}</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {fmtCurrency(item.value)}
+      {/* ── Status Breakdown ─────────────────────────────────────────────── */}
+      {statusBreakdown.length > 0 && (
+        <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl p-6">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-purple-500" />
+            Pool Status Breakdown
+          </h2>
+          <div className="flex flex-wrap gap-3">
+            {statusBreakdown.map((s) => (
+              <div
+                key={s.status}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10"
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    s.status === "ACTIVE"
+                      ? "bg-emerald-500"
+                      : s.status === "COMPLETED"
+                      ? "bg-blue-500"
+                      : "bg-gray-400"
+                  }`}
+                />
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {s.count}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                  {s.status.toLowerCase()}
                 </span>
               </div>
-              <div className="h-2 w-full bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${item.color}`}
-                  style={{ width: `${Math.min(item.pct, 100).toFixed(1)}%` }}
-                />
-              </div>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                {item.pct.toFixed(1)}% of collected
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── Per-Pool Breakdown ───────────────────────────────────────────── */}
+      {/* ── Gift Analytics ───────────────────────────────────────────────── */}
       <div>
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-          <Database className="h-4 w-4 text-purple-500" />
-          Gift Pools ({pools.length})
+          <Gift className="h-4 w-4 text-purple-500" />
+          Gift Analytics ({giftAnalytics.length})
         </h2>
+
         <div className="space-y-4">
-          {pools.map((pool) => (
-            <div
-              key={pool.giftId}
-              className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl p-5"
-            >
-              {/* Pool header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center">
-                    <Database className="h-4 w-4 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                      {pool.name}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Gift ID #{pool.giftId}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      pool.status === "ACTIVE"
-                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                        : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${pool.status === "ACTIVE" ? "bg-emerald-500" : "bg-gray-400"}`} />
-                    {pool.status}
-                  </span>
-                  <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full">
-                    Target RTP: {pool.targetRtpPercent}%
-                  </span>
-                </div>
-              </div>
+          {giftAnalytics.map((gift) => {
+            const giftRtp =
+              gift.totalVolume > 0
+                ? (gift.totalPayouts / gift.totalVolume) * 100
+                : 0;
+            const giftProfit = gift.totalVolume - gift.totalPayouts;
 
-              {/* RTP bar */}
-              <div className="mb-4">
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-500 dark:text-gray-400">Actual RTP</span>
-                  <span className={`font-bold ${rtpColor(pool.actualRtpPercent, pool.targetRtpPercent)}`}>
-                    {pool.actualRtpPercent.toFixed(2)}%
-                    <span className="ml-1 text-gray-400 font-normal">
-                      / {pool.targetRtpPercent}% target
-                    </span>
-                  </span>
-                </div>
-                <div className="h-2 w-full bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${rtpBarColor(pool.actualRtpPercent, pool.targetRtpPercent)}`}
-                    style={{
-                      width: `${Math.min((pool.actualRtpPercent / pool.targetRtpPercent) * 100, 100).toFixed(1)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Metrics grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  {
-                    label: "Total Entries",
-                    value: fmt(pool.metrics.totalEntries),
-                    icon: <Users className="h-3.5 w-3.5" />,
-                  },
-                  {
-                    label: "Collected",
-                    value: fmtCurrency(pool.metrics.totalCollected),
-                    icon: <DollarSign className="h-3.5 w-3.5" />,
-                  },
-                  {
-                    label: "Instant Payouts",
-                    value: fmtCurrency(pool.metrics.totalInstantPayout),
-                    icon: <Zap className="h-3.5 w-3.5" />,
-                  },
-                  {
-                    label: "House Profit",
-                    value: fmtCurrency(pool.metrics.houseProfit),
-                    icon: <TrendingUp className="h-3.5 w-3.5" />,
-                  },
-                  {
-                    label: "Pool Payouts",
-                    value: fmtCurrency(pool.metrics.totalPoolPayout),
-                    icon: <Activity className="h-3.5 w-3.5" />,
-                  },
-                  {
-                    label: "Completed Rounds",
-                    value: fmt(pool.metrics.completedMultiplayerRounds),
-                    icon: <CheckCircle className="h-3.5 w-3.5" />,
-                  },
-                  {
-                    label: "Combined Payout",
-                    value: fmtCurrency(pool.metrics.totalCombinedPayout),
-                    icon: <DollarSign className="h-3.5 w-3.5" />,
-                  },
-                  {
-                    label: "Reserve Balance",
-                    value: fmtCurrency(pool.metrics.globalReserveBalance),
-                    icon: <Database className="h-3.5 w-3.5" />,
-                  },
-                ].map((m) => (
-                  <div
-                    key={m.label}
-                    className="bg-gray-50 dark:bg-white/5 rounded-lg p-3"
-                  >
-                    <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mb-1">
-                      {m.icon}
-                      <span className="text-xs">{m.label}</span>
+            return (
+              <div
+                key={gift.giftId}
+                className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl p-5"
+              >
+                {/* Gift header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center">
+                      <Gift className="h-4 w-4 text-purple-500" />
                     </div>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">
-                      {m.value}
-                    </p>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                        {gift.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Gift ID #{gift.giftId}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
 
-          {pools.length === 0 && (
+                  {/* Per-gift status pills */}
+                  {gift.statusBreakdown.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {gift.statusBreakdown.map((s) => (
+                        <span
+                          key={s.status}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            s.status === "ACTIVE"
+                              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                              : s.status === "COMPLETED"
+                              ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                              : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400"
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              s.status === "ACTIVE"
+                                ? "bg-emerald-500"
+                                : s.status === "COMPLETED"
+                                ? "bg-blue-500"
+                                : "bg-gray-400"
+                            }`}
+                          />
+                          {s.count} {s.status.toLowerCase()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* RTP bar */}
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-500 dark:text-gray-400">Payout RTP</span>
+                    <span
+                      className={`font-bold ${
+                        giftRtp >= 80
+                          ? "text-emerald-500"
+                          : giftRtp >= 50
+                          ? "text-amber-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {giftRtp.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        giftRtp >= 80
+                          ? "bg-emerald-500"
+                          : giftRtp >= 50
+                          ? "bg-amber-500"
+                          : "bg-red-500"
+                      }`}
+                      style={{ width: `${Math.min(giftRtp, 100).toFixed(1)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Metrics grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    {
+                      label: "Total Pools",
+                      value: fmt(gift.totalPools),
+                      icon: <Database className="h-3.5 w-3.5" />,
+                    },
+                    {
+                      label: "Volume",
+                      value: fmtCurrency(gift.totalVolume),
+                      icon: <DollarSign className="h-3.5 w-3.5" />,
+                    },
+                    {
+                      label: "Payouts",
+                      value: fmtCurrency(gift.totalPayouts),
+                      icon: <Zap className="h-3.5 w-3.5" />,
+                    },
+                    {
+                      label: "House Profit",
+                      value: fmtCurrency(giftProfit),
+                      icon: <TrendingUp className="h-3.5 w-3.5" />,
+                    },
+                  ].map((m) => (
+                    <div
+                      key={m.label}
+                      className="bg-gray-50 dark:bg-white/5 rounded-lg p-3"
+                    >
+                      <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 mb-1">
+                        {m.icon}
+                        <span className="text-xs">{m.label}</span>
+                      </div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {m.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {giftAnalytics.length === 0 && (
             <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl p-12 text-center">
-              <Database className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-900 dark:text-white">No active gift pools</p>
+              <Activity className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                No gift pool activity yet
+              </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Create a gift configuration to start receiving spins.
               </p>
               <Link
                 href="/b2b/configurations"
-                className="inline-flex mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
+                className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold transition-colors"
               >
+                <CheckCircle className="h-4 w-4" />
                 Manage Configurations
               </Link>
             </div>
           )}
         </div>
       </div>
-
-      {/* ── Recent Spin Activity ─────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Clock className="h-4 w-4 text-purple-500" />
-            Recent Spin Activity
-          </h2>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Last {recentActivity.instantSpins.length} transactions
-          </span>
-        </div>
-
-        {recentActivity.instantSpins.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400 text-sm">
-            No recent activity yet.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100 dark:divide-white/10">
-              <thead className="bg-gray-50 dark:bg-[#1f132b]">
-                <tr>
-                  {["Transaction ID", "User ID", "Bet", "Win", "Multiplier", "Result", "Time"].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400"
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                {recentActivity.instantSpins.map((spin) => {
-                  const won = spin.winAmount > 0;
-                  return (
-                    <tr
-                      key={spin.transactionId}
-                      className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                    >
-                      <td className="px-4 py-3">
-                        <code className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                          {spin.transactionId.slice(0, 20)}…
-                        </code>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                        #{spin.userId}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        {fmtCurrency(spin.betAmount)}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium">
-                        <span className={won ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 dark:text-gray-500"}>
-                          {won ? fmtCurrency(spin.winAmount) : "—"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                        {spin.multiplier > 0 ? `${spin.multiplier}×` : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                            won
-                              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                              : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400"
-                          }`}
-                        >
-                          {won ? <CheckCircle className="h-3 w-3" /> : null}
-                          {won ? "Win" : "Loss"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        {timeAgo(spin.timestamp)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* ── Multiplayer Pools (completed) ──────────────────────────────── */}
-      {recentActivity.completedPools.length > 0 && (
-        <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/10">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Activity className="h-4 w-4 text-blue-500" />
-              Completed Multiplayer Rounds ({recentActivity.completedPools.length})
-            </h2>
-          </div>
-          <div className="p-6 text-sm text-gray-600 dark:text-gray-400">
-            {recentActivity.completedPools.length} round(s) completed.
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -29,19 +29,20 @@ export default function B2BDashboardPage() {
   const [dashboardData, setDashboardData] = useState<PoolAnalyticsResponse["data"] | null>(null);
 
   // 🟢 Fetch unified analytics on load
+  // TODO: Re-enable when backend implements /api/client/analytics endpoint
   useEffect(() => {
-    async function loadStats() {
-      try {
-        const data = await getAnalytics();
-        setDashboardData(data);
-      } catch (e) {
-        console.error("Failed to load dashboard data", e);
-      }
-    }
-    // Only fetch if they have active API keys / access (paid)
-    if (user?.paymentStatus === PaymentStatus.PAID) {
-      loadStats();
-    }
+    // async function loadStats() {
+    //   try {
+    //     const data = await getAnalytics();
+    //     setDashboardData(data);
+    //   } catch (e) {
+    //     console.error("Failed to load dashboard data", e);
+    //   }
+    // }
+    // // Only fetch if they have active API keys / access (paid)
+    // if (user?.paymentStatus === PaymentStatus.PAID) {
+    //   loadStats();
+    // }
   }, [getAnalytics, user?.paymentStatus]);
 
   // 🟢 NEW FLOW LOGIC: Check if API Keys exist via backend credentials

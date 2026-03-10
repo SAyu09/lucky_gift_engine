@@ -55,7 +55,7 @@ export function Header() {
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 hidden sm:flex items-center gap-2">
           Dashboard
           <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-purple-500/10 text-xs text-gray-500 dark:text-purple-300 font-medium">
-            Verified
+            Verified 
           </span>
         </h2>
       </div>
