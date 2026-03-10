@@ -68,7 +68,9 @@ export function Header() {
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200/50 rounded-full cursor-pointer hover:shadow-sm hover:-translate-y-0.5 transition-all group mr-2"
           >
             <Coins className="h-4 w-4 text-yellow-500 group-hover:animate-pulse" />
-            <span className="text-sm font-bold text-yellow-700">54,320</span>
+            <span className="text-sm font-bold text-yellow-700">
+              {user?.walletBalance?.toLocaleString() || 0}
+            </span>
             <div className="w-px h-4 bg-yellow-200/60 mx-1"></div>
             <Plus className="h-4 w-4 text-yellow-600 hover:text-yellow-800" />
           </div>

@@ -46,7 +46,7 @@ export default function BillingPage() {
 
   // Mock data
   const billingStats = {
-    currentBalance: user?.paymentStatus === PaymentStatus.PAID ? 54320 : 0,
+    currentBalance: user?.walletBalance || 0,
     monthlySpend: user?.paymentStatus === PaymentStatus.PAID ? 12450 : 0,
     totalApiCalls: user?.paymentStatus === PaymentStatus.PAID ? 1284092 : 0,
     nextBillingDate: "01 Apr",

@@ -59,6 +59,7 @@ export interface LoginResponse {
             role: Role;
             name?: string | null;
             paymentStatus?: PaymentStatus;
+            walletBalance?: number;
             clientCredentials?: ClientCredentials;
             createdAt?: string;
         };

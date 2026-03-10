@@ -59,6 +59,7 @@ export const useAuth = () => {
                 name: rawUser.name ?? null,
                 createdAt: rawUser.createdAt ?? new Date().toISOString(),
                 paymentStatus: rawUser.paymentStatus,
+                walletBalance: rawUser.walletBalance,
                 clientCredentials: rawUser.clientCredentials, // 🟢 Securely mapped from backend
             };
 
@@ -156,6 +157,7 @@ export const useAuth = () => {
             const user: User = {
                 ...rawUser,
                 paymentStatus: rawUser.paymentStatus,
+                walletBalance: rawUser.walletBalance,
                 clientCredentials: rawUser.clientCredentials, // 🟢 Securely mapped from backend
             };
 
