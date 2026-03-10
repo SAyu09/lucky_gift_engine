@@ -2,15 +2,9 @@
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/apiClient';
 import {
-    GiftConfig,
-    CreateConfigResponse,
-    ListConfigsResponse,
-    GetConfigResponse,
     ActivePoolResponse,
-    PoolStatusResponse,
 } from '@/types/gift.types';
 import { PoolAnalyticsResponse } from '@/types/admin.types';
-import { PoolResetResponse } from '@/types/admin.types';
 
 /**
  * B2B hook — wraps all B2B Client API calls.
@@ -23,95 +17,6 @@ export const useB2B = () => {
         const e = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
         return e.response?.data?.message || e.response?.data?.error || e.message || fallback;
     };
-
-    const getConfigs = useCallback(async (): Promise<GiftConfig[]> => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.get<ListConfigsResponse>('/client/config');
-            return response.data.configs;
-        } catch (err) {
-            const message = parseError(err, 'Failed to fetch configurations');
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const getConfig = useCallback(async (giftId: number): Promise<GiftConfig> => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.get<GetConfigResponse>(`/client/config/${giftId}`);
-            return response.data.config;
-        } catch (err) {
-            const message = parseError(err, `Failed to fetch config for gift ${giftId}`);
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const createConfig = useCallback(async (data: {
-        giftId: number;
-        name: string;
-        entryPrice: number;
-        targetRtpPercent?: number;
-        probabilityTable?: Array<{ multiplier: number; probability: number }>;
-    }): Promise<GiftConfig> => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.post<CreateConfigResponse>('/client/config', data);
-            return response.data.config;
-        } catch (err) {
-            const message = parseError(err, 'Failed to create configuration');
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const updateConfig = useCallback(async (
-        giftId: number,
-        data: Partial<Pick<GiftConfig, 'name' | 'entryPrice' | 'targetRtpPercent' | 'probabilityTable' | 'isActive'>>
-    ): Promise<GiftConfig> => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.put<{ success: boolean; config: GiftConfig }>(
-                `/client/config/${giftId}`,
-                data
-            );
-            return response.data.config;
-        } catch (err) {
-            const message = parseError(err, `Failed to update config for gift ${giftId}`);
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const deleteConfig = useCallback(async (giftId: number): Promise<string> => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.delete<{ success: boolean; message: string }>(
-                `/client/config/${giftId}`
-            );
-            return response.data.message;
-        } catch (err) {
-            const message = parseError(err, `Failed to delete config for gift ${giftId}`);
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
 
     const getAnalytics = useCallback(async (): Promise<PoolAnalyticsResponse['data']> => {
         setIsLoading(true);
@@ -168,24 +73,6 @@ export const useB2B = () => {
         }
     }, []);
 
-    const resetPool = useCallback(async (clientId: number, giftId?: number): Promise<PoolResetResponse> => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await apiClient.post<PoolResetResponse>(
-                `/client/clients/${clientId}/reset-pools`,
-                giftId !== undefined ? { giftId } : {}
-            );
-            return response.data;
-        } catch (err) {
-            const message = parseError(err, 'Failed to reset pool');
-            setError(message);
-            throw new Error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     // ─── Initiate Stripe Payment ─────────────────────────────────────────────
     // 🟢 FIXED: Accept amount, call /payments/recharge, and map correct data payload
     const initiatePayment = useCallback(async (amount: number = 10): Promise<{ checkoutUrl: string; sessionId: string }> => {
@@ -203,17 +90,10 @@ export const useB2B = () => {
         }
     }, []);
 
-
     return {
-        getConfigs,
-        getConfig,
-        createConfig,
-        updateConfig,
-        deleteConfig,
         getAnalytics,
         updateWebhook,
         getActivePool,
-        resetPool,
         initiatePayment,
         isLoading,
         error,

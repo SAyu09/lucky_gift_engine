@@ -14,15 +14,18 @@ export enum PaymentStatus {
 
 // 🟢 NEW: Interface for segregated B2B credentials
 export interface ClientCredentials {
+    clientId: number;
+    clientName: string;
+    isActive: boolean;
     testWebhookUrl: string | null;
     testWebhookSecret: string | null;
     liveWebhookUrl: string | null;
     liveWebhookSecret: string | null;
     hasTestApiKey: boolean;
     hasLiveApiKey: boolean;
-    // 🟢 NEW: Decrypted keys sent from the backend /me route
-    testApiKey?: string | null; 
-    liveApiKey?: string | null; 
+    // 🟢 Decrypted keys sent from the backend /me route
+    testApiKey?: string | null;
+    liveApiKey?: string | null;
 }
 
 // Matches backend Prisma User model shape
@@ -33,7 +36,8 @@ export interface User {
     profileImage?: string | null;
     role: Role;
     paymentStatus?: PaymentStatus;
-    clientCredentials?: ClientCredentials; 
+    walletBalance?: number;
+    clientCredentials?: ClientCredentials;
     createdAt: string;
     updatedAt?: string;
 }
@@ -55,7 +59,7 @@ export interface LoginResponse {
             role: Role;
             name?: string | null;
             paymentStatus?: PaymentStatus;
-            clientCredentials?: ClientCredentials; 
+            clientCredentials?: ClientCredentials;
             createdAt?: string;
         };
     };

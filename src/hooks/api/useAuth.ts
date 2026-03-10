@@ -71,7 +71,7 @@ export const useAuth = () => {
                 const hasApiKey = user.clientCredentials?.hasTestApiKey || user.clientCredentials?.hasLiveApiKey;
                 destination = hasApiKey ? ROLE_ROUTES[Role.B2B_CLIENT] : '/b2b/api-keys';
             } else {
-                destination = ROLE_ROUTES[user.role] ?? '/';
+                destination = (ROLE_ROUTES as any)[user.role] ?? '/';
             }
             router.push(destination);
 

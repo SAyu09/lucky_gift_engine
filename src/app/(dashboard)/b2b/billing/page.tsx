@@ -1,6 +1,12 @@
+// src/app/(dashboard)/b2b/billing/page.tsx
 "use client";
 
 import { useState } from "react";
+import { useB2B } from "@/hooks/api/useB2B";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useToastStore } from "@/store/useToastStore";
+import { PaymentStatus } from "@/types/auth.types";
+import { Loader2 } from "lucide-react";
 import {
   CreditCard,
   TrendingUp,
@@ -20,12 +26,29 @@ export default function BillingPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<
     "week" | "month" | "year"
   >("month");
+  
+  const { initiatePayment, isLoading } = useB2B();
+  const { addToast } = useToastStore();
+  const { user } = useAuthStore();
+
+  const handlePayNow = async () => {
+    try {
+      // 10 dollars default recharge for freemium unlock
+      const response = await initiatePayment(10);
+      if (response?.checkoutUrl) {
+        // Redirect browser to Stripe Checkout page
+        window.location.href = response.checkoutUrl;
+      }
+    } catch (err) {
+      addToast("Failed to initiate payment. Please try again.", "error");
+    }
+  };
 
   // Mock data
   const billingStats = {
-    currentBalance: 54320,
-    monthlySpend: 12450,
-    totalApiCalls: 1284092,
+    currentBalance: user?.paymentStatus === PaymentStatus.PAID ? 54320 : 0,
+    monthlySpend: user?.paymentStatus === PaymentStatus.PAID ? 12450 : 0,
+    totalApiCalls: user?.paymentStatus === PaymentStatus.PAID ? 1284092 : 0,
     nextBillingDate: "01 Apr",
     nextBillingYear: "2026",
   };
@@ -267,10 +290,26 @@ export default function BillingPage() {
                 ${totalDue.toLocaleString()}.00
               </span>
             </div>
-            <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              PAY NOW
-            </button>
+            
+            {user?.paymentStatus === PaymentStatus.PAID ? (
+                <div className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold py-3 px-6 rounded-lg text-center flex items-center justify-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  API SUITE UNLOCKED
+                </div>
+            ) : (
+                <button 
+                  onClick={handlePayNow}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-5 w-5" />
+                  )}
+                  {isLoading ? "REDIRECTING TO CHECKOUT..." : "PAY & UNLOCK API SUITE ($10)"}
+                </button>
+            )}
 
             {/* ── FILLS THE EMPTY SPACE BELOW PAY NOW ── */}
             <div className="mt-4 space-y-3">

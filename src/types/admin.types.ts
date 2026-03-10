@@ -14,54 +14,10 @@ export interface CreateClientResponse {
     };
 }
 
-// Matches backend Prisma SubscriptionPlan model + PlanType enum
-export type PlanType = 'MONTHLY' | 'PAY_AS_YOU_GO';
-
-export interface SubscriptionPlan {
-    id: number;
-    name: string;
-    type: PlanType;
-    description?: string | null;
-    price: number;
-    maxGifts: number;
-    requestQuota: number;
-    features: Record<string, unknown>;
-    isActive: boolean;
-    createdAt: string;
-}
-
-// Matches backend: POST /api/admin/subscriptions/plans
-export interface CreatePlanResponse {
-    success: boolean;
-    data: SubscriptionPlan;
-}
-
-// Matches backend: POST /api/admin/subscriptions/subscribe
-export interface SubscribeClientResponse {
-    success: boolean;
-    message: string;
-    data: {
-        clientName: string;
-        planName: string;
-        type: PlanType;
-        apiRequestsBalance: number;
-        isUnlimited: boolean;
-        credentials: {
-            warning: string;
-            rawApiKey: string;
-            webhookSecret: string;
-            instructions: string;
-        } | null;
-    };
-}
-
 // Matches backend pool analytics response from PoolAnalyticsController
 export interface PoolBreakdown {
     giftId: number;
     name: string;
-    status: 'ACTIVE' | 'INACTIVE';
-    targetRtpPercent: number;
-    actualRtpPercent: number;
     metrics: {
         totalEntries: number;
         completedMultiplayerRounds: number;
@@ -69,8 +25,9 @@ export interface PoolBreakdown {
         totalInstantPayout: number;
         totalPoolPayout: number;
         totalCombinedPayout: number;
-        houseProfit: number;
-        globalReserveBalance: number;
+        clientProfitAmt: number;     // Replaced houseProfit
+        platformCutAmt: number;      // Replaced houseProfit
+        reserveAdd: number;          // Replaced globalReserveBalance/jackpotAdd
     };
 }
 
@@ -81,6 +38,7 @@ export interface PoolAnalyticsResponse {
             id: number;
             name: string;
             isActive: boolean;
+            globalReserve: number;
         };
         overallAnalytics: {
             totalSpinsProcessed: number;
@@ -91,9 +49,9 @@ export interface PoolAnalyticsResponse {
                 poolWins: number;
                 combinedTotal: number;
             };
-            totalHouseProfit: number;
-            actualGlobalRtp: number;
-            totalRtpShieldInterventions: number;
+            totalClientProfit: number;
+            totalPlatformCut: number;
+            totalReserveAdded: number;
         };
         pools: PoolBreakdown[];
         recentActivity: {
@@ -112,22 +70,5 @@ export interface PoolAnalyticsResponse {
                 timestamp: string;
             }>;
         };
-    };
-}
-
-// Matches backend: POST /api/admin/clients/:clientId/reset-pools
-export interface PoolResetDetail {
-    giftId: number;
-    clearedPoolId: string;
-    affectedUsersCount: number;
-    affectedParticipants: Array<{ userId: number; transactionId: string }>;
-}
-
-export interface PoolResetResponse {
-    success: boolean;
-    message: string;
-    data: {
-        clearedGifts: number;
-        details: PoolResetDetail[];
     };
 }
