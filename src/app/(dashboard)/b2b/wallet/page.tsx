@@ -3,7 +3,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Wallet, Loader2, CheckCircle, XCircle, Key, Sparkles } from "lucide-react";
+import {
+  Wallet,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Key,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import { useToastStore } from "@/store/useToastStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAuth } from "@/hooks/api/useAuth";
@@ -13,10 +21,7 @@ import { PaymentStatus } from "@/types/auth.types";
 interface RechargeResponse {
   success: boolean;
   message?: string;
-  data: {
-    checkoutUrl: string;
-    sessionId: string;
-  };
+  data: { checkoutUrl: string; sessionId: string };
 }
 
 interface ConfirmResponse {
@@ -41,37 +46,50 @@ export default function B2BWalletPage() {
   const [customAmount, setCustomAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-  const [confirmResult, setConfirmResult] = useState<ConfirmResponse["data"] | null>(null);
+  const [justUnlocked, setJustUnlocked] = useState(false); // only true right after first payment
   const [paymentCanceled, setPaymentCanceled] = useState(false);
 
   const quickAmounts = [10, 25, 50, 100, 250];
+  const isAlreadyPaid = user?.paymentStatus === PaymentStatus.PAID;
 
-  // ── Handle Stripe redirect back ──────────────────────────────────────────────
-  const handleConfirm = useCallback(async (sessionId: string) => {
-    setIsConfirming(true);
-    try {
-      const response = await apiClient.post<ConfirmResponse>("/payments/confirm", { sessionId });
-      const result = response.data.data;
-      setConfirmResult(result);
+  // ── Handle Stripe redirect back ─────────────────────────────────────────
+  const handleConfirm = useCallback(
+    async (sessionId: string) => {
+      setIsConfirming(true);
+      try {
+        const response = await apiClient.post<ConfirmResponse>(
+          "/payments/confirm",
+          { sessionId }
+        );
+        const result = response.data.data;
 
-      if (result.unlocked) {
-        // Refresh user state so the paywall lifts immediately without a manual refresh
-        await getMe();
-        addToast("🎉 API Suite unlocked! Your Test & Live keys are ready.", "success");
-      } else {
-        addToast("Payment verified. Contact support if access is not granted.", "warning");
+        if (result.unlocked) {
+          await getMe(); // refresh user state → paywall lifts
+          setJustUnlocked(true);
+          addToast(
+            "🎉 API Suite unlocked! Your Test & Live keys are ready.",
+            "success"
+          );
+          // Auto-dismiss the success banner after 4 seconds
+          setTimeout(() => setJustUnlocked(false), 4000);
+        } else {
+          addToast(
+            "Payment verified. Contact support if access is not granted.",
+            "warning"
+          );
+        }
+      } catch (err: any) {
+        const msg =
+          err?.response?.data?.message ||
+          "Failed to confirm payment. Please contact support.";
+        addToast(msg, "error");
+      } finally {
+        setIsConfirming(false);
+        router.replace("/b2b/wallet");
       }
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        "Failed to confirm payment. Please contact support.";
-      addToast(msg, "error");
-    } finally {
-      setIsConfirming(false);
-      // Clean up URL query params without a full page reload
-      router.replace("/b2b/wallet");
-    }
-  }, [getMe, addToast, router]);
+    },
+    [getMe, addToast, router]
+  );
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -87,14 +105,15 @@ export default function B2BWalletPage() {
     }
   }, [searchParams, handleConfirm, addToast, router]);
 
-  // ── Initiate Stripe Checkout ────────────────────────────────────────────────
+  // ── Initiate Stripe Checkout ────────────────────────────────────────────
   const handlePayment = async () => {
     if (!selectedAmount) return;
     setIsProcessing(true);
     try {
-      const response = await apiClient.post<RechargeResponse>("/payments/recharge", {
-        amount: selectedAmount,
-      });
+      const response = await apiClient.post<RechargeResponse>(
+        "/payments/recharge",
+        { amount: selectedAmount }
+      );
       const { checkoutUrl } = response.data.data;
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
@@ -111,9 +130,7 @@ export default function B2BWalletPage() {
     }
   };
 
-  const isAlreadyPaid = user?.paymentStatus === PaymentStatus.PAID;
-
-  // ── Confirming state ────────────────────────────────────────────────────────
+  // ── Confirming spinner ──────────────────────────────────────────────────
   if (isConfirming) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
@@ -128,78 +145,87 @@ export default function B2BWalletPage() {
             Confirming Payment...
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Verifying with Stripe and generating your API keys. Please wait.
+            Verifying with Stripe and generating your API keys.
           </p>
         </div>
       </div>
     );
   }
 
-  // ── Already unlocked ────────────────────────────────────────────────────────
-  if (isAlreadyPaid || confirmResult?.unlocked) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl blur-2xl opacity-40 scale-110" />
-          <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 p-6 rounded-3xl shadow-2xl">
-            <CheckCircle className="h-12 w-12 text-white" />
-          </div>
-        </div>
-        <div className="text-center max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-semibold mb-4">
-            <Sparkles className="h-3.5 w-3.5" />
-            API Suite Active
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Developer Suite Unlocked!
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Your Test & Live API keys have been generated. Head to the API &
-            Developer section to view and use them.
-          </p>
-          <div className="mt-6 flex gap-3 justify-center">
-            <button
-              onClick={() => router.push("/b2b/api-keys")}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg shadow-purple-500/30"
-            >
-              <Key className="h-5 w-5" />
-              View API Keys
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Payment form ────────────────────────────────────────────────────────────
+  // ── Main wallet page (shown for both unpaid & paid users) ──────────────
   return (
     <div className="space-y-4 sm:space-y-6 pb-10">
+      {/* ─── Header ─────────────────────────────────── */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-          Unlock API Suite
+          {isAlreadyPaid ? "Add Funds to Wallet" : "Unlock API Suite"}
         </h1>
         <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
-          One-time payment to unlock Test & Live API keys, webhook
-          configuration, and full engine access.
+          {isAlreadyPaid
+            ? "Top up your wallet balance to keep your engine running."
+            : "One-time payment to unlock Test & Live API keys, webhook configuration, and full engine access."}
         </p>
       </div>
 
+      {/* ─── Just-unlocked banner (auto-dismisses after 4s) ── */}
+      {justUnlocked && (
+        <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl animate-fade-in">
+          <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+              🎉 Developer Suite Unlocked!
+            </p>
+            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+              Your Test & Live API keys are ready.{" "}
+              <button
+                onClick={() => router.push("/b2b/api-keys")}
+                className="underline font-semibold hover:text-emerald-900 dark:hover:text-emerald-200"
+              >
+                View API Keys →
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Already-paid info bar ─────────────────── */}
+      {isAlreadyPaid && !justUnlocked && (
+        <div className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 rounded-xl">
+          <Sparkles className="h-5 w-5 text-purple-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-purple-800 dark:text-purple-300">
+              API Suite is active · Wallet balance:{" "}
+              <span className="font-bold">
+                ${user?.walletBalance?.toLocaleString() ?? "0"}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={() => router.push("/b2b/api-keys")}
+            className="shrink-0 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
+          >
+            View Keys
+          </button>
+        </div>
+      )}
+
+      {/* ─── Canceled banner ───────────────────────── */}
       {paymentCanceled && (
         <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
           <XCircle className="h-5 w-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700 dark:text-red-400 font-medium">
-            Payment was canceled. No charges were made. You can try again
-            anytime.
+            Payment was canceled. No charges were made.
           </p>
         </div>
       )}
 
+      {/* ─── Amount selection + pay button ─────────── */}
       <div className="max-w-lg mx-auto">
         <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 backdrop-blur-sm">
           <div className="flex items-center gap-2 mb-6">
             <Wallet className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Choose Amount (USD)
+              {isAlreadyPaid ? "Recharge Amount (USD)" : "Choose Amount (USD)"}
             </h3>
           </div>
 
@@ -260,8 +286,14 @@ export default function B2BWalletPage() {
               </>
             ) : (
               <>
-                <Key className="h-6 w-6" />
-                Pay ${selectedAmount?.toLocaleString() || "0"} & Unlock API Suite
+                {isAlreadyPaid ? (
+                  <Wallet className="h-6 w-6" />
+                ) : (
+                  <Key className="h-6 w-6" />
+                )}
+                {isAlreadyPaid
+                  ? `Recharge $${selectedAmount?.toLocaleString() || "0"}`
+                  : `Pay $${selectedAmount?.toLocaleString() || "0"} & Unlock`}
               </>
             )}
           </button>
@@ -273,7 +305,10 @@ export default function B2BWalletPage() {
           )}
 
           <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-4">
-            🔒 Payments are secured via Stripe. One-time unlock — no recurring charges.
+            🔒 Payments are secured via Stripe.{" "}
+            {isAlreadyPaid
+              ? "Funds are added to your wallet balance."
+              : "One-time unlock — no recurring charges."}
           </p>
         </div>
       </div>
