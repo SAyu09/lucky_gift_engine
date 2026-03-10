@@ -72,3 +72,18 @@ export interface PoolAnalyticsResponse {
         };
     };
 }
+// Matches backend: GET /api/admin/stats
+export interface DashboardStatsResponse {
+    success: boolean;
+    data: {
+        metrics: {
+            totalActiveClients: number;
+            totalEndUsers: number;
+            totalSpinsProcessed: number;
+        };
+        financials: {
+            totalWalletRecharges: number;
+            totalPendingClientBalances: number;
+        };
+    };
+}

@@ -4,6 +4,7 @@ import { apiClient } from '@/lib/apiClient';
 import {
     CreateClientResponse,
     PoolAnalyticsResponse,
+    DashboardStatsResponse,
 } from '@/types/admin.types';
 
 /**
@@ -25,6 +26,29 @@ export const useAdmin = () => {
         const e = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
         return e.response?.data?.message || e.response?.data?.error || e.message || fallback;
     };
+
+    // ─── Get Dashboard Stats ──────────────────────────────────────────────────
+    /**
+     * GET /api/admin/stats
+     * Returns global platform metrics: total clients, users, transactions, etc.
+     */
+    const getDashboardStats = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.get<DashboardStatsResponse>(
+                '/admin/stats',
+                { headers: adminHeaders() }
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch dashboard stats');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     // ─── Create B2B Client ────────────────────────────────────────────────────
     /**
@@ -82,6 +106,7 @@ export const useAdmin = () => {
     }, []);
 
     return {
+        getDashboardStats,
         createClient,
         getClientAnalytics,
         isLoading,
