@@ -18,7 +18,6 @@ import {
   DollarSign,
   Shield,
   Sliders,
-  Building2,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -37,12 +36,7 @@ export function Sidebar() {
             icon: BarChart2,
           },
           {
-            name: "Clients (B2B)",
-            href: "/admin/clients",
-            icon: Building2,
-          },
-          {
-            name: "Platform Users",
+            name: "Client Users",
             href: "/admin/users",
             icon: Users,
           },
