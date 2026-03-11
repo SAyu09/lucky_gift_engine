@@ -49,7 +49,7 @@ export default function B2BTransactionsPage() {
         setTotalItems(response.meta?.total || 0); // response has meta instead of pagination
       }
     } catch (err) {
-      console.error('Failed to fetch transactions', err);
+      console.error('Failed to fetch transactions:', err instanceof Error ? err.message : err);
     } finally {
       setIsLoading(false);
     }
@@ -121,30 +121,35 @@ export default function B2BTransactionsPage() {
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date & Time</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction ID</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">User ID</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bet</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Win (Mult)</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift ID</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift Price</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift Num</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bet Amount</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Win Amount</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reserve After Spin</th>
                 <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-[#1a1025] divide-y divide-gray-200 dark:divide-white/10">
               {transactions.map((tx: any) => (
-                <tr key={tx.transactionId} className="hover:bg-gray-50 dark:hover:bg-[#1f132b] transition-colors">
+                <tr key={tx.transactionId || tx.id} className="hover:bg-gray-50 dark:hover:bg-[#1f132b] transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {new Date(tx.createdAt).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm font-mono text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-white/10 px-2 py-1 rounded">{tx.transactionId}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 dark:text-purple-400">
-                    {tx.endUserId}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {tx.giftId}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
-                    --
+                    {tx.giftPrice?.toLocaleString() || '--'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
+                    {tx.giftNum || '--'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
+                    {tx.betAmount?.toLocaleString() || '--'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -154,13 +159,17 @@ export default function B2BTransactionsPage() {
                         </div>
                       )}
                       <div className="flex flex-col items-end">
-                        <span className={`text-sm font-bold ${tx.payoutStatus === 'SUCCESS' ? 'text-green-600' : 'text-gray-400'}`}>
-                          {/* We don't have winAmount in standard output but maybe from other props, just placeholder */}
-                          {tx.payoutStatus === 'SUCCESS' ? '+' : ''}--
+                        <span className={`text-sm font-bold ${tx.winAmount > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                          {tx.winAmount > 0 ? '+' : ''}{tx.winAmount?.toLocaleString() || 0}
                         </span>
-                        <span className="text-xs text-gray-400">--x</span>
+                        {tx.multiplier !== undefined && (
+                          <span className="text-xs text-gray-400">{tx.multiplier}x</span>
+                        )}
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
+                    {tx.reserveAfterSpin?.toLocaleString() || '--'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${

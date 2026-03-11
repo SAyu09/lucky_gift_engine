@@ -13,10 +13,10 @@ export const useB2B = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const parseError = (err: unknown, fallback: string): string => {
+    const parseError = useCallback((err: unknown, fallback: string): string => {
         const e = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
         return e.response?.data?.message || e.response?.data?.error || e.message || fallback;
-    };
+    }, []);
 
     const getAnalytics = useCallback(async (): Promise<PoolAnalyticsResponse['data']> => {
         setIsLoading(true);

@@ -347,7 +347,7 @@ export default function RewardPoolPage() {
       </div>
 
       {/* ── Status Breakdown ─────────────────────────────────────────────── */}
-      {statusBreakdown.length > 0 && (
+      {statusBreakdown && statusBreakdown.length > 0 && (
         <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl p-6">
           <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-purple-500" />
@@ -417,7 +417,7 @@ export default function RewardPoolPage() {
                   </div>
 
                   {/* Per-gift status pills */}
-                  {gift.statusBreakdown.length > 0 && (
+                  {gift.statusBreakdown && gift.statusBreakdown.length > 0 && (
                     <div className="flex items-center gap-2 flex-wrap">
                       {gift.statusBreakdown.map((s) => (
                         <span
