@@ -40,6 +40,10 @@ export default function ClientDetailsPage({
   const [isLedgerVisible, setIsLedgerVisible] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
+  // Optimistic UI state — flips instantly, reverts on error
+  const [optimisticActive, setOptimisticActive] = useState<boolean | null>(null);
+  const displayActive = optimisticActive !== null ? optimisticActive : (data?.profile.isActive ?? false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -65,22 +69,27 @@ export default function ClientDetailsPage({
 
   const handleToggleStatus = async () => {
     if (!data || isTogglingStatus) return;
-    
+
+    const newStatus = !displayActive;
+    // Flip UI instantly — no loading flash
+    setOptimisticActive(newStatus);
     setIsTogglingStatus(true);
+
     try {
-      const newStatus = !data.profile.isActive;
       const res = await updateClientStatus(id, newStatus);
       if (res && res.success) {
         setData(prev => prev ? {
           ...prev,
-          profile: {
-            ...prev.profile,
-            isActive: res.data.isActive
-          }
+          profile: { ...prev.profile, isActive: res.data.isActive }
         } : null);
+        setOptimisticActive(null); // hand back to real data
+      } else {
+        // revert on failure
+        setOptimisticActive(!newStatus);
       }
     } catch (err) {
       console.error("Failed to toggle client status:", err);
+      setOptimisticActive(!newStatus); // revert
     } finally {
       setIsTogglingStatus(false);
     }
@@ -103,7 +112,7 @@ export default function ClientDetailsPage({
         </div>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white">Connection Failed</h2>
         <p className="text-gray-500 max-w-md">{error || "The requested client data could not be retrieved from the server."}</p>
-        <button 
+        <button
           onClick={() => router.back()}
           className="mt-2 px-6 py-2 bg-gray-900 dark:bg-white dark:text-gray-900 text-white rounded-lg font-semibold"
         >
@@ -148,7 +157,7 @@ export default function ClientDetailsPage({
       <div className="bg-gradient-to-br from-purple-700 to-indigo-900 dark:from-[#1a1025] dark:to-[#120a1d] border border-purple-500/30 dark:border-white/10 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/10 rounded-full -ml-16 -mb-16 blur-3xl pointer-events-none" />
-        
+
         <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
             <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-2xl flex-shrink-0 border-2 border-white/20">
@@ -157,9 +166,7 @@ export default function ClientDetailsPage({
               </span>
             </div>
             <div>
-              <div className="flex items-center gap-3">
-                <h3 className="text-2xl font-bold text-white">{profile.name}</h3>
-              </div>
+              <h3 className="text-2xl font-bold text-white">{profile.name}</h3>
               <p className="text-purple-200/80 text-sm mt-1 font-medium">
                 {profile.user.email} • <span className="text-purple-300">#{profile.id}</span>
               </p>
@@ -175,62 +182,61 @@ export default function ClientDetailsPage({
               </div>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap lg:flex-nowrap gap-3 items-stretch justify-center lg:justify-end w-full lg:w-auto">
 
-            {/* ── Toggle Button ── */}
+            {/* ── Smooth Toggle — no loading state shown ── */}
             <button
               onClick={handleToggleStatus}
               disabled={isTogglingStatus}
-              className="flex-1 lg:flex-none px-6 py-3 min-w-[170px] bg-gradient-to-b from-white/10 to-transparent rounded-xl border border-white/10 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
+              className="flex-1 lg:flex-none px-6 py-3 min-w-[155px] bg-gradient-to-b from-white/10 to-transparent rounded-xl border border-white/10 backdrop-blur-md transition-all duration-300 hover:scale-[1.02] active:scale-95 disabled:cursor-not-allowed shadow-lg"
             >
               <p className="text-[10px] font-bold text-purple-200 uppercase tracking-widest mb-3 text-center">
                 Account Status
               </p>
 
-              {isTogglingStatus ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 text-white/70 animate-spin" />
-                  <span className="text-xs font-bold text-white/50">Updating…</span>
-                </div>
-              ) : (
-                /* ── pill + label stacked vertically so they never overlap ── */
-                <div className="flex flex-col items-center gap-2">
-                  {/* pill track — fixed 56×28 so knob has room */}
-                  <div
-                    style={{ width: 56, height: 28, borderRadius: 14, position: 'relative', flexShrink: 0 }}
-                    className={`transition-all duration-500 ease-in-out ${
-                      profile.isActive
-                        ? "bg-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.5)]"
-                        : "bg-rose-500/80 shadow-[0_0_16px_rgba(244,63,94,0.4)]"
-                    }`}
-                  >
-                    {/* knob — 22×22, inset 3px from top, slides left↔right */}
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: 3,
-                        width: 22,
-                        height: 22,
-                        borderRadius: '50%',
-                        backgroundColor: 'white',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                        transition: 'left 0.45s cubic-bezier(0.4,0,0.2,1)',
-                        left: profile.isActive ? 56 - 22 - 3 : 3,
-                      }}
-                    />
-                  </div>
-
-                  {/* label below pill */}
+              <div className="flex flex-col items-center gap-1.5">
+                {/* pill track */}
+                <div
+                  style={{ width: 56, height: 28, borderRadius: 14, position: 'relative', flexShrink: 0 }}
+                  className={`transition-all duration-500 ease-in-out ${
+                    displayActive
+                      ? "bg-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.5)]"
+                      : "bg-rose-500/80 shadow-[0_0_16px_rgba(244,63,94,0.4)]"
+                  }`}
+                >
+                  {/* knob */}
                   <span
-                    className={`text-sm font-black tracking-wider transition-colors duration-300 ${
-                      profile.isActive ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
-                    {profile.isActive ? "ACTIVE" : "INACTIVE"}
-                  </span>
+                    style={{
+                      position: 'absolute',
+                      top: 3,
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
+                      transition: 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      left: displayActive ? 56 - 22 - 3 : 3,
+                    }}
+                  />
+                  {/* subtle ring pulse while API is in-flight */}
+                  {isTogglingStatus && (
+                    <span
+                      style={{ borderRadius: 14 }}
+                      className="absolute inset-0 animate-ping opacity-30 bg-white"
+                    />
+                  )}
                 </div>
-              )}
+
+                {/* label */}
+                <span
+                  className={`text-xs font-black tracking-[0.1em] transition-colors duration-300 ${
+                    displayActive ? "text-emerald-400" : "text-rose-400"
+                  }`}
+                >
+                  {displayActive ? "ACTIVE" : "INACTIVE"}
+                </span>
+              </div>
             </button>
 
             <div className="flex-1 lg:flex-none px-6 py-3 min-w-[140px] bg-gradient-to-b from-white/10 to-transparent rounded-xl border border-white/10 backdrop-blur-md flex flex-col justify-center items-center">
@@ -246,7 +252,7 @@ export default function ClientDetailsPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Wallet & Billing Ledger */}
         <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
@@ -293,7 +299,7 @@ export default function ClientDetailsPage({
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => setIsLedgerVisible(!isLedgerVisible)}
               className="w-full py-2.5 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-xl text-xs font-bold transition-all border border-gray-200 dark:border-white/10 mt-2 flex items-center justify-center gap-2"
             >
@@ -355,71 +361,71 @@ export default function ClientDetailsPage({
         <div id="ledger-section" className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
           <div className="p-6 border-b border-gray-200 dark:border-white/10">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center">
-                      <History className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h2 className="text-lg font-black text-gray-900 dark:text-white">Transaction & Recharge Ledger</h2>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center">
+                  <History className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500 transition-all hover:bg-gray-100">
-                      Export CSV
-                  </button>
-                </div>
+                <h2 className="text-lg font-black text-gray-900 dark:text-white">Transaction & Recharge Ledger</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500 transition-all hover:bg-gray-100">
+                  Export CSV
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-[#1f132b]">
+              <thead className="bg-gray-50 dark:bg-[#1f132b]">
+                <tr>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Balance After</th>
+                  <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Reference</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                {ledger.length > 0 ? (
+                  ledger.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {new Date(entry.createdAt).toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1">{entry.description}</p>
+                        <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">Event ID: {entry.id}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`text-sm font-black ${entry.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>
+                          {entry.amount >= 0 ? '+' : ''}₹{entry.amount.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Wallet className="h-3 w-3 text-gray-400" />
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">₹{entry.balanceAfter.toLocaleString()}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-white/5 rounded text-[10px] font-mono text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-white/10">
+                          {entry.referenceId.slice(0, 12)}...
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
                   <tr>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Balance After</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Reference</th>
+                    <td colSpan={5} className="px-6 py-20 text-center">
+                      <History className="h-10 w-10 text-gray-200 dark:text-white/10 mx-auto mb-4" />
+                      <p className="text-gray-500 font-medium">No recharge history found for this client.</p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                  {ledger.length > 0 ? (
-                      ledger.map((entry) => (
-                        <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                  {new Date(entry.createdAt).toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1">{entry.description}</p>
-                              <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter">Event ID: {entry.id}</span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`text-sm font-black ${entry.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600'}`}>
-                                  {entry.amount >= 0 ? '+' : ''}₹{entry.amount.toLocaleString()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                  <Wallet className="h-3 w-3 text-gray-400" />
-                                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">₹{entry.balanceAfter.toLocaleString()}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="px-2 py-0.5 bg-gray-100 dark:bg-white/5 rounded text-[10px] font-mono text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-white/10">
-                                  {entry.referenceId.slice(0, 12)}...
-                              </span>
-                            </td>
-                        </tr>
-                      ))
-                  ) : (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-20 text-center">
-                            <History className="h-10 w-10 text-gray-200 dark:text-white/10 mx-auto mb-4" />
-                            <p className="text-gray-500 font-medium">No recharge history found for this client.</p>
-                        </td>
-                      </tr>
-                  )}
-                </tbody>
+                )}
+              </tbody>
             </table>
           </div>
         </div>
@@ -445,13 +451,13 @@ export default function ClientDetailsPage({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          
+
           <div className="space-y-8">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Target RTP (Return to Player)</label>
                 <div className="flex items-center gap-3">
-                   <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${rtpMeta.color} border-current opacity-80 uppercase tracking-tighter`}>
+                  <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${rtpMeta.color} border-current opacity-80 uppercase tracking-tighter`}>
                     {rtpMeta.label} MODE
                   </span>
                   <span className="text-3xl font-black text-purple-600 dark:text-purple-400 tabular-nums">{rtpTarget}%</span>
@@ -483,9 +489,9 @@ export default function ClientDetailsPage({
               <div className="space-y-2">
                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Platform Cut (%)</label>
                 <div className="relative group">
-                  <input 
-                    type="number" 
-                    defaultValue={configuration.platformCutPercent} 
+                  <input
+                    type="number"
+                    defaultValue={configuration.platformCutPercent}
                     className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-purple-500/40 outline-none transition-all"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</div>
@@ -494,9 +500,9 @@ export default function ClientDetailsPage({
               <div className="space-y-2">
                 <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Client Profit (%)</label>
                 <div className="relative group">
-                  <input 
-                    type="number" 
-                    defaultValue={configuration.clientProfitPercent} 
+                  <input
+                    type="number"
+                    defaultValue={configuration.clientProfitPercent}
                     className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-purple-500/40 outline-none transition-all"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</div>
@@ -527,15 +533,15 @@ export default function ClientDetailsPage({
         </div>
 
         <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-           <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
-              <p className="text-[10px] text-gray-500 max-w-sm">
-                <b>Guardrail Warning:</b> Modifying the probability table manually may void current pool integrity. The engine will auto-rebalance remaining reserves within 60 seconds of saving.
-              </p>
-           </div>
-           <button className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10">
-             Push Config to Engine
-           </button>
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+            <p className="text-[10px] text-gray-500 max-w-sm">
+              <b>Guardrail Warning:</b> Modifying the probability table manually may void current pool integrity. The engine will auto-rebalance remaining reserves within 60 seconds of saving.
+            </p>
+          </div>
+          <button className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10">
+            Push Config to Engine
+          </button>
         </div>
       </div>
     </div>
