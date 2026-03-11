@@ -87,3 +87,112 @@ export interface DashboardStatsResponse {
         };
     };
 }
+// Matches backend: GET /api/admin/clients
+export interface PlatformClient {
+    id: number;
+    name: string;
+    email: string;
+    isActive: boolean;
+    paymentStatus: string;
+    walletBalance: number;
+    globalReserve: number;
+    stats: {
+        totalSpins: number;
+        totalPools: number;
+        totalRecharges: number;
+    };
+    createdAt: string;
+}
+
+export interface ClientListResponse {
+    success: boolean;
+    data: PlatformClient[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}
+export interface ClientDetailResponse {
+    success: boolean;
+    data: {
+        profile: {
+            id: number;
+            name: string;
+            isActive: boolean;
+            createdAt: string;
+            user: {
+                id: number;
+                email: string;
+                name: string;
+                role: string;
+            };
+        };
+        configuration: {
+            targetRtpPercent: number;
+            platformCutPercent: number;
+            clientProfitPercent: number;
+            poolSize: number;
+            probabilityTable: Array<{
+                multiplier: number;
+                probability: number;
+            }>;
+        };
+        billing: {
+            paymentStatus: string;
+            walletBalance: number;
+            globalReserve: number;
+            hasTestApiKey: boolean;
+            hasLiveApiKey: boolean;
+            liveWebhookUrl: string | null;
+            testWebhookUrl: string | null;
+        };
+        analytics: {
+            totalSpinsProcessed: number;
+            totalVolumeProcessed: number;
+            totalPayouts: number;
+            totalPlatformRevenue: number;
+            totalClientProfit: number;
+            totalReserveAdded: number;
+        };
+        recharges: {
+            totalRechargeCount: number;
+            totalRechargeAmount: number;
+        };
+        pools: {
+            totalPools: number;
+            breakdown: {
+                PENDING: number;
+                FILLED: number;
+                COMPLETED: number;
+                CANCELLED: number;
+            };
+        };
+    };
+}
+export interface LedgerEntry {
+    id: string;
+    clientId: number;
+    type: string;
+    amount: number;
+    balanceAfter: number;
+    description: string;
+    referenceId: string;
+    createdAt: string;
+    client: {
+        id: number;
+        name: string;
+    };
+}
+
+export interface LedgerListResponse {
+    success: boolean;
+    data: LedgerEntry[];
+    meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+}

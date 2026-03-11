@@ -5,6 +5,9 @@ import {
     CreateClientResponse,
     PoolAnalyticsResponse,
     DashboardStatsResponse,
+    ClientListResponse,
+    ClientDetailResponse,
+    LedgerListResponse,
 } from '@/types/admin.types';
 
 /**
@@ -105,11 +108,108 @@ export const useAdmin = () => {
         }
     }, []);
 
+    // ─── Get All Clients (User Management) ──────────────────────────────────
+    /**
+     * GET /api/admin/clients
+     * Returns list of all B2B clients for user management.
+     */
+    const getClients = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.get<ClientListResponse>(
+                '/admin/clients',
+                { headers: adminHeaders() }
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch clients');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // ─── Get Client Details ──────────────────────────────────────────────────
+    /**
+     * GET /api/admin/clients/:clientId
+     * Returns full profile, billing, config, and stats for a client.
+     */
+    const getClientDetails = useCallback(async (clientId: string | number) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.get<ClientDetailResponse>(
+                `/admin/clients/${clientId}`,
+                { headers: adminHeaders() }
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch client details');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // ─── Get Client Ledger ──────────────────────────────────────────────────
+    /**
+     * GET /api/admin/ledgers?clientId=:clientId
+     * Returns recharge history and balance logs for a specific client.
+     */
+    const getClientLedger = useCallback(async (clientId: string | number) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.get<LedgerListResponse>(
+                `/admin/ledgers`,
+                { 
+                    params: { clientId },
+                    headers: adminHeaders() 
+                }
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to fetch client ledger');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+    const updateClientStatus = useCallback(async (clientId: string | number, isActive: boolean) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.put<{ success: boolean; message: string; data: { id: number, isActive: boolean } }>(
+                `/admin/clients/${clientId}/status`,
+                { isActive },
+                { headers: adminHeaders() }
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to update client status');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     return {
         getDashboardStats,
         createClient,
         getClientAnalytics,
+        getClients,
+        getClientDetails,
+        getClientLedger,
+        updateClientStatus,
         isLoading,
         error,
     };
+
+
+
 };

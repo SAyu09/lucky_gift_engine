@@ -3,7 +3,7 @@
 import { Role } from "@/types/auth.types";
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://192.168.1.7:3001/api";
+  process.env.NEXT_PUBLIC_API_URL || "http://192.168.1.5:3001/api";
 
 export const ROLES = {
   ADMIN: Role.ADMIN,
