@@ -1,7 +1,7 @@
 // src/store/useToastStore.ts
 import { create } from 'zustand';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'warnixng'; // Added 'warnixng' for the new toast type
 
 export interface Toast {
     id: string;

@@ -4,23 +4,11 @@
 import React, { useState, useEffect } from 'react';
 import { useB2B } from '@/hooks/api/useB2B';
 import { History, Search, Filter, ShieldAlert } from 'lucide-react';
-
-// Mock type for the UI since the backend GET /transactions might not be fully modeled yet
-interface TransactionAudit {
-  id: string; // The transactionId
-  date: string;
-  userId: string;
-  giftName: string;
-  betAmount: number;
-  winAmount: number;
-  multiplier: number;
-  status: 'SUCCESS' | 'FAILED' | 'PENDING';
-  isDowngraded?: boolean; // Flag to indicate if RTP Shield intervened
-}
+import { Transaction } from '@/types/b2b.types';
 
 export default function B2BTransactionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +34,7 @@ export default function B2BTransactionsPage() {
       const response = await getTransactions(queryParams);
       if (response && response.data) {
         setTransactions(response.data);
-        setTotalItems(response.meta?.total || 0); // response has meta instead of pagination
+        setTotalItems(response.meta?.total || 0);
       }
     } catch (err) {
       console.error('Failed to fetch transactions:', err instanceof Error ? err.message : err);
@@ -121,12 +109,13 @@ export default function B2BTransactionsPage() {
               <tr>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date & Time</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction ID</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift ID</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift Price</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gift Num</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bet Amount</th>
                 <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Win Amount</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reserve After Spin</th>
+                
+                {/* 🟢 NEW: Replaced Reserve with Net Profit & Platform Fee */}
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Profit</th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Platform Fee</th>
+                
                 <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
@@ -137,40 +126,40 @@ export default function B2BTransactionsPage() {
                     {new Date(tx.createdAt).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-white/10 px-2 py-1 rounded">{tx.transactionId}</span>
+                    <span className="text-sm font-mono text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-white/10 px-2 py-1 rounded" title={tx.transactionId}>
+                      {tx.transactionId.length > 12 ? `${tx.transactionId.substring(0, 12)}...` : tx.transactionId}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {tx.giftId}
-                  </td>
+                  
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
-                    {tx.giftPrice?.toLocaleString() || '--'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
-                    {tx.giftNum || '--'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
-                    {tx.betAmount?.toLocaleString() || '--'}
+                    {tx.betAmount != null ? `$${Number(tx.betAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-2">
                       {tx.isDowngraded && (
-                        <div title="RTP Shield Intervened (Downgrade)">
+                        <div title="RTP Shield Intervened (Downgrade to save profit margin)">
                            <ShieldAlert className="h-4 w-4 text-yellow-500" />
                         </div>
                       )}
                       <div className="flex flex-col items-end">
-                        <span className={`text-sm font-bold ${tx.winAmount > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                          {tx.winAmount > 0 ? '+' : ''}{tx.winAmount?.toLocaleString() || 0}
+                        <span className={`text-sm font-bold ${Number(tx.winAmount) > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}>
+                          {Number(tx.winAmount) > 0 ? '+' : ''}${Number(tx.winAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         {tx.multiplier !== undefined && (
-                          <span className="text-xs text-gray-400">{tx.multiplier}x</span>
+                          <span className="text-xs text-gray-400">{Number(tx.multiplier)}x</span>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right font-medium">
-                    {tx.reserveAfterSpin?.toLocaleString() || '--'}
+
+                  {/* 🟢 NEW: Escrow Data Rendering */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-purple-600 dark:text-purple-400 text-right font-bold">
+                    {tx.clientProfitAmt != null ? `+ $${Number(tx.clientProfitAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right font-medium">
+                    {tx.platformCutAmt != null ? `$${Number(tx.platformCutAmt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+                  </td>
+                  
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                       tx.payoutStatus === 'SUCCESS' ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20' : 

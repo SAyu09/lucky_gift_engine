@@ -60,13 +60,16 @@ export const useAuth = () => {
                 createdAt: rawUser.createdAt ?? new Date().toISOString(),
                 paymentStatus: rawUser.paymentStatus,
                 walletBalance: rawUser.walletBalance,
-                clientCredentials: rawUser.clientCredentials, // 🟢 Securely mapped from backend
+                
+                // 🟢 NEW: Capture Escrow Profit from the backend
+                unsettledProfit: (rawUser as any).unsettledProfit, 
+                
+                clientCredentials: rawUser.clientCredentials,
             };
 
             storeLogin(user, token);
 
             // B2B_CLIENTs need to set up their API keys before seeing the dashboard.
-            // 🟢 FIXED: Now strictly checks the backend truth instead of local storage!
             let destination: string;
             if (user.role === Role.B2B_CLIENT) {
                 const hasApiKey = user.clientCredentials?.hasTestApiKey || user.clientCredentials?.hasLiveApiKey;
@@ -89,8 +92,6 @@ export const useAuth = () => {
     // ─── Register ─────────────────────────────────────────────────────────────
     /**
      * POST /api/auth/register
-     * Backend returns: { success, message, data: { id, email, name, role, createdAt } }
-     * NOTE: Registration does NOT return a token — user must login after registering.
      */
     const register = useCallback(async (
         email: string,
@@ -108,7 +109,6 @@ export const useAuth = () => {
                 role,
             });
 
-            // Backend explicitly does NOT return a token on register.
             // Always redirect to /login so the user can start an authenticated session.
             router.push('/login');
 
@@ -125,16 +125,12 @@ export const useAuth = () => {
     // ─── Logout ───────────────────────────────────────────────────────────────
     /**
      * POST /api/auth/logout (protected — requires Bearer token)
-     * Backend sets activeToken = null, invalidating the session server-side.
-     * CRITICAL: not calling this leaves "ghost sessions" that old tokens can reuse.
      */
     const logout = useCallback(async () => {
         try {
-            // Always call backend first to invalidate the server-side session
             await apiClient.post<LogoutResponse>('/auth/logout');
         } catch {
-            // Even if the backend call fails (e.g., token already expired),
-            // we still clear local state to ensure the user is logged out locally.
+            // Ignore backend failure if token already expired
         } finally {
             storeLogout();
             router.push('/login');
@@ -144,7 +140,6 @@ export const useAuth = () => {
     // ─── Get Me ───────────────────────────────────────────────────────────────
     /**
      * GET /api/auth/me (protected — requires Bearer token)
-     * Backend returns: { success, data: { id, email, name, profileImage, role, createdAt, clientCredentials } }
      * Used to refresh user state on page load / hydration.
      */
     const getMe = useCallback(async (): Promise<User> => {
@@ -158,7 +153,11 @@ export const useAuth = () => {
                 ...rawUser,
                 paymentStatus: rawUser.paymentStatus,
                 walletBalance: rawUser.walletBalance,
-                clientCredentials: rawUser.clientCredentials, // 🟢 Securely mapped from backend
+                
+                // 🟢 NEW: Capture Escrow Profit on app hydration/refresh
+                unsettledProfit: (rawUser as any).unsettledProfit, 
+                
+                clientCredentials: rawUser.clientCredentials,
             };
 
             setUser(user);
@@ -169,8 +168,7 @@ export const useAuth = () => {
 
             const e = err as { response?: { status?: number } };
             if (e.response?.status === 401) {
-                // Token is stale — force logout (apiClient interceptor also handles this,
-                // but explicit logout ensures Zustand store is cleared cleanly)
+                // Token is stale — force logout
                 await logout();
             }
             throw new Error(message);

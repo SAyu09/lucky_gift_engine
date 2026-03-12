@@ -13,17 +13,36 @@ export interface Client {
     webhookUrl: string;
     webhookSecret: string | null;
     isActive: boolean;
+    
     // Unified Math & Billing properties
     clientProfitPercent: number;
     platformCutPercent: number;
     globalReserve: number;
     poolSize: number;
-    walletBalance: number;
+    
+    // 🟢 NEW: Updated Financial Model
+    walletBalance: number;       // Withdrawable funds
+    unsettledProfit: number;     // Escrow funds waiting for monthly settlement
+    
     probabilityTable: any;
     paymentStatus: PaymentStatus;
-    paymentTransactionId?: string;
+    
     createdAt: string;
     updatedAt: string;
+}
+
+// 🟢 NEW: Added for the B2B Transaction Logs UI
+export interface Transaction {
+    id: string;
+    transactionId: string;
+    betAmount: number;
+    winAmount: number;
+    multiplier: number;
+    isDowngraded: boolean;       // RTP Shield flag
+    clientProfitAmt: number;     // Client's net profit from this spin
+    platformCutAmt: number;      // Platform's fee from this spin
+    payoutStatus: string;
+    createdAt: string;
 }
 
 // Matches backend webhook payload that the engine sends to client webhooks

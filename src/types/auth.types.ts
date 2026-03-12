@@ -7,85 +7,65 @@ export enum Role {
 }
 
 export enum PaymentStatus {
-    PENDING = 'PENDING',
+    UNPAID = 'UNPAID',
     PAID = 'PAID',
-    FAILED = 'FAILED',
+    PENDING = 'PENDING',
 }
 
-// 🟢 NEW: Interface for segregated B2B credentials
 export interface ClientCredentials {
-    clientId: number;
-    clientName: string;
-    isActive: boolean;
-    testWebhookUrl: string | null;
-    testWebhookSecret: string | null;
-    liveWebhookUrl: string | null;
-    liveWebhookSecret: string | null;
     hasTestApiKey: boolean;
     hasLiveApiKey: boolean;
-    // 🟢 Decrypted keys sent from the backend /me route
-    testApiKey?: string | null;
-    liveApiKey?: string | null;
 }
 
-// Matches backend Prisma User model shape
 export interface User {
     id: number;
     email: string;
-    name: string | null;
-    profileImage?: string | null;
     role: Role;
+    name: string | null;
+    createdAt: string;
+    
+    // B2B specific fields (nullable/optional for standard users & admins)
     paymentStatus?: PaymentStatus;
     walletBalance?: number;
+    
+    // 🟢 NEW: Added to fix the TypeScript error in useAuth.ts
+    unsettledProfit?: number; 
+    
     clientCredentials?: ClientCredentials;
-    createdAt: string;
-    updatedAt?: string;
 }
 
-export interface AuthResponse {
-    user: User;
-    token: string;
+export interface AuthState {
+    user: User | null;
+    token: string | null;
+    isAuthenticated: boolean;
+    login: (user: User, token: string) => void;
+    logout: () => void;
+    setUser: (user: User) => void;
 }
 
-// Matches backend: POST /api/auth/login → { success, message, data: { token, user } }
 export interface LoginResponse {
     success: boolean;
     message: string;
     data: {
         token: string;
-        user: {
-            id: number;
-            email: string;
-            role: Role;
-            name?: string | null;
-            paymentStatus?: PaymentStatus;
-            walletBalance?: number;
-            clientCredentials?: ClientCredentials;
-            createdAt?: string;
-        };
+        user: User;
     };
 }
 
-// Matches backend: POST /api/auth/register → { success, message, data: { id, email, name, role, createdAt } }
 export interface RegisterResponse {
     success: boolean;
     message: string;
     data: {
-        id: number;
-        email: string;
-        role: Role;
-        name?: string | null;
-        createdAt?: string;
+        userId: number;
     };
 }
 
-// Matches backend: GET /api/auth/me → { success, data: User }
 export interface MeResponse {
     success: boolean;
+    message: string;
     data: User;
 }
 
-// Matches backend: POST /api/auth/logout → { success, message }
 export interface LogoutResponse {
     success: boolean;
     message: string;

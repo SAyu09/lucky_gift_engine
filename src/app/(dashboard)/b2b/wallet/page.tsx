@@ -9,8 +9,8 @@ import {
   CheckCircle,
   XCircle,
   Key,
-  Sparkles,
   TrendingUp,
+  Sparkles,
 } from "lucide-react";
 import { useToastStore } from "@/store/useToastStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -46,7 +46,7 @@ export default function B2BWalletPage() {
   const [customAmount, setCustomAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-  const [justUnlocked, setJustUnlocked] = useState(false); // only true right after first payment
+  const [justUnlocked, setJustUnlocked] = useState(false);
   const [paymentCanceled, setPaymentCanceled] = useState(false);
 
   const quickAmounts = [10, 25, 50, 100, 250];
@@ -154,15 +154,15 @@ export default function B2BWalletPage() {
 
   // ── Main wallet page (shown for both unpaid & paid users) ──────────────
   return (
-    <div className="space-y-4 sm:space-y-6 pb-10">
+    <div className="space-y-6 pb-10">
       {/* ─── Header ─────────────────────────────────── */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-          {isAlreadyPaid ? "Add Funds to Wallet" : "Unlock API Suite"}
+          {isAlreadyPaid ? "Financial Overview" : "Unlock API Suite"}
         </h1>
         <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
           {isAlreadyPaid
-            ? "Top up your wallet balance to keep your engine running."
+            ? "Manage your withdrawable funds and track your live engine profits."
             : "One-time payment to unlock Test & Live API keys, webhook configuration, and full engine access."}
         </p>
       </div>
@@ -188,24 +188,45 @@ export default function B2BWalletPage() {
         </div>
       )}
 
-      {/* ─── Already-paid info bar ─────────────────── */}
+      {/* ─── 🟢 NEW: Financial Overview Grid (Already Paid) ────────────── */}
       {isAlreadyPaid && !justUnlocked && (
-        <div className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 rounded-xl">
-          <Sparkles className="h-5 w-5 text-purple-500 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-purple-800 dark:text-purple-300">
-              API Suite is active · Wallet balance:{" "}
-              <span className="font-bold">
-                ${user?.walletBalance?.toLocaleString() ?? "0"}
-              </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {/* Withdrawable Balance */}
+          <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Available Wallet Balance
+              </p>
+              <Wallet className="h-5 w-5 text-gray-400" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
+              ${user?.walletBalance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00"}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+              Ready for withdrawal or API renewals.
             </p>
           </div>
-          <button
-            onClick={() => router.push("/b2b/api-keys")}
-            className="shrink-0 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
-          >
-            View Keys
-          </button>
+
+          {/* Unsettled Escrow */}
+          <div className="bg-gradient-to-br from-purple-500/5 to-pink-500/5 border border-purple-200 dark:border-purple-500/20 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 p-4 opacity-10">
+              <TrendingUp className="h-32 w-32 text-purple-600" />
+            </div>
+            <div className="relative z-10 flex flex-col justify-center h-full">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                  Unsettled Profit (Escrow)
+                </p>
+                <Sparkles className="h-5 w-5 text-purple-400" />
+              </div>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
+                ${(user as any)?.unsettledProfit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00"}
+              </h3>
+              <p className="text-xs text-purple-600/70 dark:text-purple-400/70 mt-2 pr-8">
+                Accumulated game profit. Settles automatically to your wallet on the 1st of next month.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -221,11 +242,11 @@ export default function B2BWalletPage() {
 
       {/* ─── Amount selection + pay button ─────────── */}
       <div className="max-w-lg mx-auto">
-        <div className="bg-white dark:bg-purple-950/20 border border-gray-200 dark:border-purple-500/10 rounded-xl p-6 backdrop-blur-sm">
+        <div className="bg-white dark:bg-[#1a1025] border border-gray-200 dark:border-white/10 rounded-xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
             <Wallet className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {isAlreadyPaid ? "Recharge Amount (USD)" : "Choose Amount (USD)"}
+              {isAlreadyPaid ? "Add Funds to Wallet (USD)" : "Choose Amount (USD)"}
             </h3>
           </div>
 
@@ -245,7 +266,7 @@ export default function B2BWalletPage() {
                 }}
                 placeholder="10"
                 disabled={isProcessing}
-                className="w-full bg-gray-50 dark:bg-purple-950/30 border border-gray-200 dark:border-purple-500/20 rounded-lg pl-12 pr-4 py-4 text-2xl font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
+                className="w-full bg-gray-50 dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg pl-12 pr-4 py-4 text-2xl font-semibold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 transition-colors"
               />
             </div>
           </div>
@@ -264,7 +285,7 @@ export default function B2BWalletPage() {
                 className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   selectedAmount === amount
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30"
-                    : "bg-gray-100 dark:bg-purple-950/30 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-purple-500/20"
+                    : "bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
                 }`}
               >
                 ${amount}
@@ -307,8 +328,8 @@ export default function B2BWalletPage() {
           <p className="text-xs text-center text-gray-400 dark:text-gray-500 mt-4">
             🔒 Payments are secured via Stripe.{" "}
             {isAlreadyPaid
-              ? "Funds are added to your wallet balance."
-              : "One-time unlock — no recurring charges."}
+              ? "Funds are added to your withdrawable wallet balance."
+              : "One-time security deposit — no recurring charges."}
           </p>
         </div>
       </div>
