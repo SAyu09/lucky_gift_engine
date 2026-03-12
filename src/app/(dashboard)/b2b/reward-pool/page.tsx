@@ -221,62 +221,21 @@ function PoolCompositionChart({ total, segments }: { total: number; segments: an
   );
 }
 
-function DistributionSlider({ label, value, color, onChange }: { label: string; value: number; color: string; onChange: (v: number) => void }) {
-  // Visual values clamped to 100 for the bar/dot position
+function DistributionMetric({ label, value, color }: { label: string; value: number; color: string }) {
   const visualValue = Math.min(100, Math.max(0, value));
   
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center px-1">
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="text-xs font-bold" style={{ color: color }}>{value}%</p>
+        <p className="text-xs font-bold font-mono" style={{ color: color }}>{value}%</p>
       </div>
-      <div className="relative h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full group overflow-hidden">
-        <input 
-          type="range" 
-          min="0" 
-          max="100" 
-          value={visualValue} 
-          onChange={(e) => onChange(parseInt(e.target.value))}
-          className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
-        />
+      <div className="relative h-2 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
         <div 
-          className="absolute top-0 left-0 h-full rounded-full transition-all duration-300" 
+          className="absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out" 
           style={{ width: `${visualValue}%`, backgroundColor: color }} 
         />
-        <div 
-          className="absolute top-1/2 -ml-2 h-4 w-4 bg-white dark:bg-gray-200 rounded-full shadow-md border-2 border-transparent transition-transform group-hover:scale-110" 
-          style={{ left: `${visualValue}%`, marginTop: '-8px', borderColor: color }} 
-        />
       </div>
-    </div>
-  );
-}
-
-function PoolGrowthChart({ data, trend }: { data: number[]; trend: any }) {
-  const max = Math.max(...data);
-  
-  return (
-    <div className="bg-white dark:bg-[#12081d] border border-gray-100 dark:border-white/5 rounded-2xl p-6 space-y-4 shadow-sm">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Pool Growth Trend</h3>
-        <div className="flex gap-2">
-          {['7D', '30D', '90D'].map(t => (
-            <button key={t} className={`text-[10px] font-bold transition-colors ${t === '7D' ? 'text-purple-600 dark:text-secondary' : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400'}`}>{t}</button>
-          ))}
-        </div>
-      </div>
-      
-      <div className="h-32 flex items-end justify-between gap-1 px-2">
-        {data.map((v, i) => (
-          <div 
-            key={i} 
-            className="flex-1 rounded-sm bg-gradient-to-t from-purple-500/10 to-purple-500 transition-all hover:brightness-125 cursor-pointer" 
-            style={{ height: `${(v/max) * 100}%`, opacity: i === data.length - 1 ? 1 : 0.6 }}
-          />
-        ))}
-      </div>
-      
     </div>
   );
 }
@@ -293,8 +252,6 @@ export default function RewardPoolPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [mode, setMode] = useState<"test" | "live">("test");
-  const [distro, setDistro] = useState({ reward: 70, platform: 15, reserve: 10, promotion: 5 });
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const isPending = paymentStatus !== PaymentStatus.PAID;
   const hasApiKey = mode === "test" ? user?.clientCredentials?.hasTestApiKey : user?.clientCredentials?.hasLiveApiKey;
@@ -308,14 +265,6 @@ export default function RewardPoolPage() {
       
       const res = analyticsRes as unknown as AnalyticsData;
       setData(res);
-      if (res.composition?.percentages) {
-        setDistro({
-          reward: res.composition.percentages.reward,
-          platform: res.composition.percentages.platform,
-          reserve: res.composition.percentages.reserve,
-          promotion: res.composition.percentages.promotional
-        });
-      }
       setTransactions(res.recentTransactions || []);
       setLastRefreshed(new Date());
     } catch (err) {
@@ -333,25 +282,14 @@ export default function RewardPoolPage() {
   }, [hasApiKey, isPending, mode, fetchData]);
 
   const poolSegments = useMemo(() => {
+    if (!data?.composition?.percentages) return [];
     return [
-      { label: "Reward Pool", pct: distro.reward, color: COLORS.secondary },
-      { label: "Platform Fee", pct: distro.platform, color: COLORS.primary },
-      { label: "Reserve", pct: distro.reserve, color: COLORS.accent },
-      { label: "Promotional", pct: distro.promotion, color: COLORS.warning },
+      { label: "Reward Pool", pct: data.composition.percentages.reward, color: COLORS.secondary },
+      { label: "Platform Fee", pct: data.composition.percentages.platform, color: COLORS.primary },
+      { label: "Reserve", pct: data.composition.percentages.reserve, color: COLORS.accent },
+      { label: "Promotional", pct: data.composition.percentages.promotional, color: COLORS.warning },
     ];
-  }, [distro]);
-
-  const handleDistroChange = (key: keyof typeof distro, val: number) => {
-    setDistro(prev => ({ ...prev, [key]: val }));
-  };
-
-  const handleSave = () => {
-    setIsSyncing(true);
-    setTimeout(() => {
-        setIsSyncing(false);
-        alert("Configuration Saved and Deployed to Nodes");
-    }, 1500);
-  };
+  }, [data]);
 
   if (isPending) {
     return (
@@ -485,25 +423,18 @@ export default function RewardPoolPage() {
           </div>
           
           <div className="lg:col-span-4 bg-white dark:bg-[#12081d] border border-gray-100 dark:border-white/5 rounded-2xl p-6 flex flex-col shadow-sm">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-8">Distribution Controls</h3>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-8">System Allocation</h3>
             <div className="space-y-8 flex-1">
-              <DistributionSlider label="Reward Pool" value={distro.reward} color={COLORS.secondary} onChange={(v) => handleDistroChange('reward', v)} />
-              <DistributionSlider label="Platform Fee" value={distro.platform} color={COLORS.primary} onChange={(v) => handleDistroChange('platform', v)} />
-              <DistributionSlider label="Reserve Fund" value={distro.reserve} color={COLORS.accent} onChange={(v) => handleDistroChange('reserve', v)} />
-              <DistributionSlider label="Promotion" value={distro.promotion} color={COLORS.warning} onChange={(v) => handleDistroChange('promotion', v)} />
+              <DistributionMetric label="Reward Pool" value={data?.composition?.percentages?.reward || 0} color={COLORS.secondary} />
+              <DistributionMetric label="Platform Fee" value={data?.composition?.percentages?.platform || 0} color={COLORS.primary} />
+              <DistributionMetric label="Reserve Fund" value={data?.composition?.percentages?.reserve || 0} color={COLORS.accent} />
+              <DistributionMetric label="Promotion" value={data?.composition?.percentages?.promotional || 0} color={COLORS.warning} />
             </div>
             
-            <div className="grid grid-cols-2 gap-4 mt-8">
-              <button 
-                onClick={handleSave}
-                disabled={isSyncing}
-                className={`py-3 px-4 rounded-xl font-bold text-xs text-white transition-all shadow-lg flex items-center justify-center gap-2 ${isSyncing ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-pink-500/20 hover:brightness-110 active:scale-95'}`}
-              >
-                {isSyncing ? <RefreshCw className="h-3 w-3 animate-spin" /> : "Save Config"}
-              </button>
-              <button className="py-3 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 font-bold text-xs hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white active:scale-95">
-                Test Distro
-              </button>
+            <div className="mt-8 pt-6 border-t border-gray-50 dark:border-white/5">
+              <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                Distribution metrics are dynamically calculated by the core engine and are read-only for security.
+              </p>
             </div>
           </div>
         </div>
