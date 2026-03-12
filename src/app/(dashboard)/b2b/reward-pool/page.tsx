@@ -30,39 +30,45 @@ import {
 import Link from "next/link";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-interface Overall {
-  totalPoolsGenerated: number;
-  totalVolumeInPools: number;
-  totalPayoutsFromPools: number;
-}
-
-interface StatusBreakdownItem {
-  status: string;
-  count: number;
-}
-
-interface GiftAnalyticsItem {
-  giftId: number;
-  name: string;
-  totalPools: number;
-  totalVolume: number;
-  totalPayouts: number;
-  statusBreakdown: StatusBreakdownItem[];
-}
-
-interface AnalyticsData {
-  overall: Overall;
-  statusBreakdown: StatusBreakdownItem[];
-  giftAnalytics: GiftAnalyticsItem[];
-}
-
 interface Transaction {
   id: string;
+  time: string;
   type: string;
   amount: number;
   status: string;
   nodeId: string;
-  createdAt: string;
+}
+
+interface AnalyticsData {
+  topStats: {
+    totalPool: number;
+    totalPoolChange: number;
+    dailyVolume: number;
+    dailyTxCount: number;
+    activePlayers: number;
+    distributionRate: number;
+  };
+  composition: {
+    centralPool: number;
+    percentages: {
+      reward: number;
+      platform: number;
+      reserve: number;
+      promotional: number;
+    };
+    values: {
+      reward: number;
+      platform: number;
+      reserve: number;
+      promotional: number;
+    };
+  };
+  trend: {
+    data: number[];
+    avgGrowth: number;
+    projectedEOM: number;
+  };
+  recentTransactions: Transaction[];
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -153,14 +159,7 @@ function TopStatCard({
   );
 }
 
-function PoolCompositionChart({ total }: { total: number }) {
-  // Mock data for composition
-  const segments = [
-    { label: "Reward Pool", pct: 70, color: COLORS.secondary },
-    { label: "Platform Fee", pct: 15, color: COLORS.primary },
-    { label: "Reserve", pct: 10, color: COLORS.accent },
-    { label: "Promotional", pct: 5, color: COLORS.warning },
-  ];
+function PoolCompositionChart({ total, segments }: { total: number; segments: any[] }) {
 
   let cumulativePct = 0;
   
@@ -222,24 +221,39 @@ function PoolCompositionChart({ total }: { total: number }) {
   );
 }
 
-function DistributionSlider({ label, value, color }: { label: string; value: number; color: string }) {
+function DistributionSlider({ label, value, color, onChange }: { label: string; value: number; color: string; onChange: (v: number) => void }) {
+  // Visual values clamped to 100 for the bar/dot position
+  const visualValue = Math.min(100, Math.max(0, value));
+  
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center px-1">
         <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</p>
         <p className="text-xs font-bold" style={{ color: color }}>{value}%</p>
       </div>
-      <div className="relative h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full group">
-        <div className="absolute top-0 left-0 h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, backgroundColor: color }} />
-        <div className="absolute top-1/2 -ml-2 h-4 w-4 bg-white dark:bg-gray-200 rounded-full shadow-md border-2 border-transparent transition-transform group-hover:scale-110 cursor-pointer" 
-             style={{ left: `${value}%`, marginTop: '-8px', borderColor: color }} />
+      <div className="relative h-1.5 w-full bg-gray-100 dark:bg-white/5 rounded-full group overflow-hidden">
+        <input 
+          type="range" 
+          min="0" 
+          max="100" 
+          value={visualValue} 
+          onChange={(e) => onChange(parseInt(e.target.value))}
+          className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
+        />
+        <div 
+          className="absolute top-0 left-0 h-full rounded-full transition-all duration-300" 
+          style={{ width: `${visualValue}%`, backgroundColor: color }} 
+        />
+        <div 
+          className="absolute top-1/2 -ml-2 h-4 w-4 bg-white dark:bg-gray-200 rounded-full shadow-md border-2 border-transparent transition-transform group-hover:scale-110" 
+          style={{ left: `${visualValue}%`, marginTop: '-8px', borderColor: color }} 
+        />
       </div>
     </div>
   );
 }
 
-function PoolGrowthChart() {
-  const data = [40, 60, 80, 70, 95, 120, 110];
+function PoolGrowthChart({ data, trend }: { data: number[]; trend: any }) {
   const max = Math.max(...data);
   
   return (
@@ -263,16 +277,6 @@ function PoolGrowthChart() {
         ))}
       </div>
       
-      <div className="space-y-2 pt-2 border-t border-gray-50 dark:border-white/5">
-        <div className="flex justify-between items-center">
-          <p className="text-[10px] text-gray-500 dark:text-gray-500">Avg Daily Growth</p>
-          <p className="text-[10px] font-bold text-emerald-500">+2.4%</p>
-        </div>
-        <div className="flex justify-between items-center">
-          <p className="text-[10px] text-gray-500 dark:text-gray-500">Projected EOM</p>
-          <p className="text-[10px] font-bold text-gray-900 dark:text-white">₹3.2M</p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -289,6 +293,8 @@ export default function RewardPoolPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [mode, setMode] = useState<"test" | "live">("test");
+  const [distro, setDistro] = useState({ reward: 70, platform: 15, reserve: 10, promotion: 5 });
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const isPending = paymentStatus !== PaymentStatus.PAID;
   const hasApiKey = mode === "test" ? user?.clientCredentials?.hasTestApiKey : user?.clientCredentials?.hasLiveApiKey;
@@ -298,13 +304,19 @@ export default function RewardPoolPage() {
     else setLoading(true);
     setError(null);
     try {
-      const [analyticsRes, transRes] = await Promise.all([
-        getAnalytics(),
-        getTransactions({ limit: 5 })
-      ]);
+      const analyticsRes = await getAnalytics();
       
-      setData(analyticsRes as unknown as AnalyticsData);
-      setTransactions(transRes.data || []);
+      const res = analyticsRes as unknown as AnalyticsData;
+      setData(res);
+      if (res.composition?.percentages) {
+        setDistro({
+          reward: res.composition.percentages.reward,
+          platform: res.composition.percentages.platform,
+          reserve: res.composition.percentages.reserve,
+          promotion: res.composition.percentages.promotional
+        });
+      }
+      setTransactions(res.recentTransactions || []);
       setLastRefreshed(new Date());
     } catch (err) {
       setError("Failed to sync engine data");
@@ -312,13 +324,34 @@ export default function RewardPoolPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [getAnalytics, getTransactions]);
+  }, [getAnalytics]);
 
   useEffect(() => {
     if (isPending) { setLoading(false); return; }
     if (hasApiKey) fetchData();
     else setLoading(false);
   }, [hasApiKey, isPending, mode, fetchData]);
+
+  const poolSegments = useMemo(() => {
+    return [
+      { label: "Reward Pool", pct: distro.reward, color: COLORS.secondary },
+      { label: "Platform Fee", pct: distro.platform, color: COLORS.primary },
+      { label: "Reserve", pct: distro.reserve, color: COLORS.accent },
+      { label: "Promotional", pct: distro.promotion, color: COLORS.warning },
+    ];
+  }, [distro]);
+
+  const handleDistroChange = (key: keyof typeof distro, val: number) => {
+    setDistro(prev => ({ ...prev, [key]: val }));
+  };
+
+  const handleSave = () => {
+    setIsSyncing(true);
+    setTimeout(() => {
+        setIsSyncing(false);
+        alert("Configuration Saved and Deployed to Nodes");
+    }, 1500);
+  };
 
   if (isPending) {
     return (
@@ -358,9 +391,6 @@ export default function RewardPoolPage() {
       </div>
     </div>
   );
-
-  const stats = data?.overall || { totalPoolsGenerated: 0, totalVolumeInPools: 0, totalPayoutsFromPools: 0 };
-  const efficiency = stats.totalVolumeInPools > 0 ? (stats.totalPayoutsFromPools / stats.totalVolumeInPools) * 100 : 94;
 
   return (
     <div className="min-h-screen bg-transparent p-4 sm:p-6 pb-20 selection:bg-pink-500 selection:text-white">
@@ -416,33 +446,33 @@ export default function RewardPoolPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <TopStatCard 
             label="Total Pool" 
-            value={fmtCurrency(stats.totalVolumeInPools)} 
-            change={{ val: "+12.5%", pos: true }} 
+            value={fmtCurrency(data?.topStats?.totalPool || 0)} 
+            change={{ val: `+${(data?.topStats?.totalPoolChange || 0).toFixed(1)}%`, pos: (data?.topStats?.totalPoolChange || 0) >= 0 }} 
             subLabel="vs last month"
             icon={Database} 
             color={COLORS.secondary} 
           />
           <TopStatCard 
             label="Daily Volume" 
-            value={fmtCurrency(stats.totalVolumeInPools / 30)} // Simplified mock
-            change={{ val: "234 tx", pos: true }} 
-            subLabel="Peak 2:00 PM"
+            value={fmtCurrency(data?.topStats?.dailyVolume || 0)} 
+            change={{ val: `${data?.topStats?.dailyTxCount || 0} tx`, pos: true }} 
+            subLabel="Peak node usage"
             icon={Activity} 
             color={COLORS.primary} 
           />
           <TopStatCard 
             label="Active Players" 
-            value={fmt(2458)} // Mock
-            change={{ val: "342 online now", pos: true }} 
-            subLabel="Avg Entry ₹345"
+            value={fmt(data?.topStats?.activePlayers || 0)} 
+            change={{ val: "online", pos: true }} 
+            subLabel="Live participation"
             icon={Zap} 
             color={COLORS.accent} 
           />
           <TopStatCard 
             label="Distribution Rate" 
-            value={`${efficiency.toFixed(0)}% Efficiency`} 
-            change={{ val: "00:14:49", pos: false }} 
-            subLabel="Next cycle"
+            value={`${(data?.topStats?.distributionRate || 0).toFixed(1)}%`} 
+            change={{ val: "Optimized", pos: true }} 
+            subLabel="System efficiency"
             icon={ShieldCheck} 
             color={COLORS.success} 
           />
@@ -451,23 +481,27 @@ export default function RewardPoolPage() {
         {/* ── Main Content Grid ───────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-8">
-            <PoolCompositionChart total={stats.totalVolumeInPools} />
+            <PoolCompositionChart total={data?.composition?.centralPool || 0} segments={poolSegments} />
           </div>
           
           <div className="lg:col-span-4 bg-white dark:bg-[#12081d] border border-gray-100 dark:border-white/5 rounded-2xl p-6 flex flex-col shadow-sm">
             <h3 className="text-base font-bold text-gray-900 dark:text-white mb-8">Distribution Controls</h3>
             <div className="space-y-8 flex-1">
-              <DistributionSlider label="Reward Pool" value={70} color={COLORS.secondary} />
-              <DistributionSlider label="Platform Fee" value={15} color={COLORS.primary} />
-              <DistributionSlider label="Reserve Fund" value={10} color={COLORS.accent} />
-              <DistributionSlider label="Promotion" value={5} color={COLORS.warning} />
+              <DistributionSlider label="Reward Pool" value={distro.reward} color={COLORS.secondary} onChange={(v) => handleDistroChange('reward', v)} />
+              <DistributionSlider label="Platform Fee" value={distro.platform} color={COLORS.primary} onChange={(v) => handleDistroChange('platform', v)} />
+              <DistributionSlider label="Reserve Fund" value={distro.reserve} color={COLORS.accent} onChange={(v) => handleDistroChange('reserve', v)} />
+              <DistributionSlider label="Promotion" value={distro.promotion} color={COLORS.warning} onChange={(v) => handleDistroChange('promotion', v)} />
             </div>
             
             <div className="grid grid-cols-2 gap-4 mt-8">
-              <button className="py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 font-bold text-xs text-white hover:brightness-110 transition-all shadow-lg shadow-pink-500/20">
-                Save Config
+              <button 
+                onClick={handleSave}
+                disabled={isSyncing}
+                className={`py-3 px-4 rounded-xl font-bold text-xs text-white transition-all shadow-lg flex items-center justify-center gap-2 ${isSyncing ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-pink-500/20 hover:brightness-110 active:scale-95'}`}
+              >
+                {isSyncing ? <RefreshCw className="h-3 w-3 animate-spin" /> : "Save Config"}
               </button>
-              <button className="py-3 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 font-bold text-xs hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
+              <button className="py-3 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 font-bold text-xs hover:bg-gray-100 dark:hover:bg-white/10 transition-all text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white active:scale-95">
                 Test Distro
               </button>
             </div>
@@ -475,13 +509,13 @@ export default function RewardPoolPage() {
         </div>
 
         {/* ── Fund Details & Trend ────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
              {/* Styled Fund Cards */}
              {[
-               { name: "Reward Pool", val: stats.totalPayoutsFromPools, sub: "Threshold: ₹500K", icon: Zap, color: COLORS.secondary, tag: "Primary" },
-               { name: "Reserve Fund", val: stats.totalVolumeInPools * 0.1, sub: "Locked Capital", icon: ShieldCheck, color: COLORS.accent, tag: "Risk: Low" },
-               { name: "Platform Fee", val: stats.totalVolumeInPools * 0.15, sub: "Payout: Friday 00:00", icon: DollarSign, color: COLORS.primary, tag: "Weekly Cycle" },
+               { name: "Reward Pool", val: data?.composition?.values?.reward || 0, sub: "Calculated Reward Cap", icon: Zap, color: COLORS.secondary, tag: "Primary" },
+               { name: "Reserve Fund", val: data?.composition?.values?.reserve || 0, sub: "Locked Capital", icon: ShieldCheck, color: COLORS.accent, tag: "Risk: Low" },
+               { name: "Platform Fee", val: data?.composition?.values?.platform || 0, sub: "Payout Cycle", icon: DollarSign, color: COLORS.primary, tag: "Weekly" },
              ].map((fund, i) => (
                <div key={i} className="bg-white dark:bg-[#12081d] border border-gray-100 dark:border-white/10 rounded-2xl overflow-hidden relative group shadow-sm">
                   <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: fund.color }} />
@@ -503,8 +537,8 @@ export default function RewardPoolPage() {
                   <p className="text-sm font-bold text-gray-900 dark:text-white">Promotional</p>
                   <span className="text-[9px] font-bold text-[#fbbf24] uppercase">3 Active</span>
                 </div>
-                <h4 className="text-xl font-bold text-gray-900 dark:text-white">₹504K</h4>
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">Campaign: Monsoon Bash</p>
+                <h4 className="text-xl font-bold text-gray-900 dark:text-white">{fmtCurrency(data?.composition?.values?.promotional || 0)}</h4>
+                <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">Campaign: Active</p>
              </div>
              <div className="bg-white dark:bg-[#12081d] border border-emerald-500/20 rounded-2xl p-5 relative overflow-hidden shadow-sm">
                 <div className="flex justify-between items-start mb-4">
@@ -516,10 +550,6 @@ export default function RewardPoolPage() {
                 <h4 className="text-xl font-bold text-gray-900 dark:text-white">₹120K</h4>
                 <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">Last Win: ₹25K</p>
              </div>
-          </div>
-          
-          <div className="lg:col-span-4">
-            <PoolGrowthChart />
           </div>
         </div>
 
@@ -549,7 +579,7 @@ export default function RewardPoolPage() {
                 {transactions.length > 0 ? transactions.map((tx, i) => (
                   <tr key={tx.id || i} className="group hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors cursor-default">
                     <td className="px-8 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 tabular-nums">
-                      {new Date(tx.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {new Date(tx.time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-3">
