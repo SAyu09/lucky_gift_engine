@@ -39,6 +39,10 @@ export default function ClientDetailsPage({
   const [isLedgerLoading, setIsLedgerLoading] = useState(false);
   const [isLedgerVisible, setIsLedgerVisible] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+  const [platformCut, setPlatformCut] = useState(0);
+  const [clientProfit, setClientProfit] = useState(0);
+  const [isUpdatingConfig, setIsUpdatingConfig] = useState(false);
+  const { updateClientDistribution } = useAdmin();
 
   // Optimistic UI state — flips instantly, reverts on error
   const [optimisticActive, setOptimisticActive] = useState<boolean | null>(null);
@@ -55,6 +59,8 @@ export default function ClientDetailsPage({
         if (clientRes && clientRes.success) {
           setData(clientRes.data);
           setRtpTarget(clientRes.data.configuration.targetRtpPercent);
+          setPlatformCut(clientRes.data.configuration.platformCutPercent);
+          setClientProfit(clientRes.data.configuration.clientProfitPercent);
         }
 
         if (ledgerRes && ledgerRes.success) {
@@ -92,6 +98,25 @@ export default function ClientDetailsPage({
       setOptimisticActive(!newStatus); // revert
     } finally {
       setIsTogglingStatus(false);
+    }
+  };
+
+  const handleUpdateDistribution = async () => {
+    setIsUpdatingConfig(true);
+    try {
+      const res = await updateClientDistribution(id, {
+        clientProfitPercent: clientProfit,
+        platformCutPercent: platformCut,
+        targetRtpPercent: rtpTarget
+      });
+      if (res && res.success) {
+        alert("Engine Configuration Synchronized Successfully");
+      }
+    } catch (err) {
+      console.error("Failed to sync config:", err);
+      alert("Synchronization Failed");
+    } finally {
+      setIsUpdatingConfig(false);
     }
   };
 
@@ -455,7 +480,7 @@ export default function ClientDetailsPage({
           <div className="space-y-8">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-200">Target RTP (Return to Player)</label>
+                <label className="text-sm font-bold text-gray-700 dark:text-gray-200">WIN PROFIT PERCENTAGE</label>
                 <div className="flex items-center gap-3">
                   <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${rtpMeta.color} border-current opacity-80 uppercase tracking-tighter`}>
                     {rtpMeta.label} MODE
@@ -491,7 +516,8 @@ export default function ClientDetailsPage({
                 <div className="relative group">
                   <input
                     type="number"
-                    defaultValue={configuration.platformCutPercent}
+                    value={platformCut}
+                    onChange={(e) => setPlatformCut(Number(e.target.value))}
                     className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-purple-500/40 outline-none transition-all"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</div>
@@ -502,7 +528,8 @@ export default function ClientDetailsPage({
                 <div className="relative group">
                   <input
                     type="number"
-                    defaultValue={configuration.clientProfitPercent}
+                    value={clientProfit}
+                    onChange={(e) => setClientProfit(Number(e.target.value))}
                     className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-purple-500/40 outline-none transition-all"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</div>
@@ -539,8 +566,12 @@ export default function ClientDetailsPage({
               <b>Guardrail Warning:</b> Modifying the probability table manually may void current pool integrity. The engine will auto-rebalance remaining reserves within 60 seconds of saving.
             </p>
           </div>
-          <button className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10">
-            Push Config to Engine
+          <button 
+            onClick={handleUpdateDistribution}
+            disabled={isUpdatingConfig}
+            className="px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isUpdatingConfig ? <Loader2 className="h-4 w-4 animate-spin" /> : "Push Config to Engine"}
           </button>
         </div>
       </div>
