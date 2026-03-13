@@ -198,6 +198,25 @@ export const useAdmin = () => {
         }
     }, []);
 
+    const updateClientDistribution = useCallback(async (clientId: string | number, distribution: { clientProfitPercent: number, platformCutPercent: number, targetRtpPercent: number }) => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await apiClient.put<{ success: boolean; message: string; data: any }>(
+                `/admin/clients/${clientId}/distribution`,
+                distribution,
+                { headers: adminHeaders() }
+            );
+            return response.data;
+        } catch (err) {
+            const message = parseError(err, 'Failed to update distribution config');
+            setError(message);
+            throw new Error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     return {
         getDashboardStats,
         createClient,
@@ -206,6 +225,7 @@ export const useAdmin = () => {
         getClientDetails,
         getClientLedger,
         updateClientStatus,
+        updateClientDistribution,
         isLoading,
         error,
     };

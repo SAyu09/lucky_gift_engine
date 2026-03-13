@@ -65,14 +65,18 @@ export function Header() {
         {showBilling && (
           <div
             onClick={() => router.push("/b2b/wallet")}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200/50 rounded-full cursor-pointer hover:shadow-sm hover:-translate-y-0.5 transition-all group mr-2"
+            className="flex items-center gap-2 px-3 py-1.5 bg-yellow-400/10 dark:bg-[#facc15]/10 border border-yellow-200 dark:border-[#facc15]/20 rounded-full cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all group mr-2 shadow-sm"
           >
-            <Coins className="h-4 w-4 text-yellow-500 group-hover:animate-pulse" />
-            <span className="text-sm font-bold text-yellow-700">
+            <div className="h-5 w-5 rounded-full bg-yellow-400 dark:bg-[#facc15] flex items-center justify-center">
+              <Coins className="h-3 w-3 text-yellow-900" />
+            </div>
+            <span className="text-sm font-black text-yellow-700 dark:text-[#facc15] tracking-tight">
               {user?.walletBalance?.toLocaleString() || 0}
             </span>
-            <div className="w-px h-4 bg-yellow-200/60 mx-1"></div>
-            <Plus className="h-4 w-4 text-yellow-600 hover:text-yellow-800" />
+            <div className="h-4 w-[1px] bg-yellow-200 dark:bg-[#facc15]/20 mx-0.5" />
+            <div className="h-5 w-5 rounded-full bg-white dark:bg-white/10 flex items-center justify-center hover:bg-yellow-100 dark:hover:bg-[#facc15]/20 transition-colors">
+              <Plus className="h-3 w-3 text-yellow-600 dark:text-[#facc15]" />
+            </div>
           </div>
         )}
 
