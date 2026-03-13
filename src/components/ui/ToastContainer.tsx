@@ -3,18 +3,20 @@
 
 import React from 'react';
 import { useToastStore, ToastType } from '@/store/useToastStore';
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 const icons: Record<ToastType, React.ReactNode> = {
   success: <CheckCircle className="h-5 w-5 text-green-400" />,
   error: <AlertCircle className="h-5 w-5 text-red-400" />,
   info: <Info className="h-5 w-5 text-blue-400" />,
+  warning: <AlertTriangle className="h-5 w-5 text-yellow-400" />,
 };
 
 const styles: Record<ToastType, string> = {
   success: 'bg-green-50 border-green-200 text-green-800',
   error: 'bg-red-50 border-red-200 text-red-800',
   info: 'bg-blue-50 border-blue-200 text-blue-800',
+  warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
 };
 
 export function ToastContainer() {
